@@ -1,46 +1,39 @@
 import streamlit as st
 import json, random
 
-if 'selected_letters' not in st.session_state:
-    st.session_state.selected_letters = []
 
 @st.cache_data
 def getRandomPuzzle():
-    with open("puzzles.json",'r') as f:
+    with open("puzzles.json", "r") as f:
         puzzles = json.loads(f.read())
-        
+
         category = random.choice(list(puzzles.keys()))
         puzzle = random.choice(puzzles[category]).upper()
-        
+
         return (category, puzzle)
 
-category, puzzle = getRandomPuzzle()
-
-# Replace ampersand with %26
-category_replace_ampersand = category.replace('&','%26')
-
-st.title("Wheel of Disney")
 
 def generatePuzzleBoard(puzzle):
     # Replace periods with nothing
-    puzzle = puzzle.replace('.','')
+    puzzle = puzzle.replace(".", "").replace(",", "").replace(" - ", " ")
 
     # Replace letters with underscores
-    puzzle_with_underscores = ''.join(['_' if c.isalpha() and c not in st.session_state.selected_letters else c for c in puzzle])
-
-    # Remove punctuation
-    # puzzle_without_punctuation = ''.join([c for c in puzzle if c.isalpha() or c.isspace()])
+    puzzle_with_underscores = "".join(
+        ["_" if c.isalpha() and c not in st.session_state.selected_letters else c for c in puzzle]
+    )
 
     # Count words in puzzle
-    puzzle_words = puzzle_with_underscores.split(' ')
-
-    # Length of puzzle excluding spaces
-    # puzzle_characters = len(puzzle.replace(' ',''))
+    puzzle_words = puzzle_with_underscores.split(" ")
 
     ln_max = 1
 
     # Create dictionary to hold puzzle lines
-    puzzle_lines = { "ln1": ['',0,12], "ln2": ['',0,14], "ln3": ['',0,14], "ln4": ['',0,12] }
+    puzzle_lines = {
+        "ln1": ["", 0, 12],
+        "ln2": ["", 0, 14],
+        "ln3": ["", 0, 14],
+        "ln4": ["", 0, 12],
+    }
 
     # Create a variable to hold the number of words in the puzzle
     puzzle_word_count = len(puzzle_words)
@@ -51,12 +44,12 @@ def generatePuzzleBoard(puzzle):
     # Loop through the words in the puzzle
     for puzzle_word in puzzle_words:
         # Loop through the lines in the puzzle
-        for ln in range(ln_max,4):
+        for ln in range(ln_max, 4):
             # If the length of the line plus the length of the word plus a space is less than or equal to the line length
-            if len(puzzle_lines["ln" + str(ln+1)][0]) + len(puzzle_word) + 1 <= puzzle_lines["ln" + str(ln+1)][2]:
+            if len(puzzle_lines["ln" + str(ln + 1)][0]) + len(puzzle_word) + 1 <= puzzle_lines["ln" + str(ln + 1)][2]:
                 puzzle_word_used_count += 1
-                puzzle_lines["ln" + str(ln+1)][0] += puzzle_word + " "
-                puzzle_lines["ln" + str(ln+1)][1] += len(puzzle_word) + 1
+                puzzle_lines["ln" + str(ln + 1)][0] += puzzle_word + " "
+                puzzle_lines["ln" + str(ln + 1)][1] += len(puzzle_word) + 1
                 ln_max = ln
                 break
 
@@ -65,27 +58,83 @@ def generatePuzzleBoard(puzzle):
         ln_max = 0
 
         # Create dictionary to hold puzzle lines
-        puzzle_lines = { "ln1": ['',0,12], "ln2": ['',0,14], "ln3": ['',0,14], "ln4": ['',0,12] }
+        puzzle_lines = {
+            "ln1": ["", 0, 12],
+            "ln2": ["", 0, 14],
+            "ln3": ["", 0, 14],
+            "ln4": ["", 0, 12],
+        }
 
         for puzzle_word in puzzle_words:
-            for ln in range(ln_max,4):
-                if len(puzzle_lines["ln" + str(ln+1)][0]) + len(puzzle_word) + 1 <= puzzle_lines["ln" + str(ln+1)][2]:
-                    puzzle_lines["ln" + str(ln+1)][0] += puzzle_word + " "
-                    puzzle_lines["ln" + str(ln+1)][1] += len(puzzle_word) + 1
+            for ln in range(ln_max, 4):
+                if (
+                    len(puzzle_lines["ln" + str(ln + 1)][0]) + len(puzzle_word) + 1
+                    <= puzzle_lines["ln" + str(ln + 1)][2]
+                ):
+                    puzzle_lines["ln" + str(ln + 1)][0] += puzzle_word + " "
+                    puzzle_lines["ln" + str(ln + 1)][1] += len(puzzle_word) + 1
                     ln_max = ln
                     break
 
     return puzzle_lines
 
+
 def checkLetter(letter):
     if letter in puzzle:
         if letter not in st.session_state.selected_letters:
             st.session_state.selected_letters.append(letter)
-            st.toast('Correct!  There are ' + str(puzzle.count(letter)) + ' ' + letter + '\'s in the puzzle.')
+            host_message = "Correct!  There are " + str(puzzle.count(letter)) + " " + letter + "'s in the puzzle."
+            st.success(host_message)
+            st.toast(host_message)
     else:
         st.session_state.selected_letters.append(letter)
-        st.toast('Sorry, there are no ' + letter + '\'s in the puzzle.')
+        host_message = "Sorry, there are no " + letter + "'s in the puzzle."
+        st.error(host_message)
+        st.toast(host_message)
 
+    st.rerun()
+
+
+if "selected_letters" not in st.session_state:
+    st.session_state.selected_letters = []
+
+# Display the title
+st.title("Wheel of Disney")
+
+# Get a random puzzle
+category, puzzle = getRandomPuzzle()
+
+# Generate the puzzle board
+puzzle_lines = generatePuzzleBoard(puzzle)
+
+# Display the Wheel of Fortune puzzle board
+st.image(
+    """https://www.thewordfinder.com/wof-puzzle-generator/puzzle.php?bg=2&ln1="""
+    + puzzle_lines["ln1"][0]
+    + """&ln2="""
+    + puzzle_lines["ln2"][0]
+    + """&ln3="""
+    + puzzle_lines["ln3"][0]
+    + """&ln4="""
+    + puzzle_lines["ln4"][0]
+    + """&cat="""
+    + category.replace("&", "%26")
+    + """&"""
+)
+
+st.write(
+    """<style>
+
+[data-testid="column"] {
+    width: calc(10% - 1rem) !important;
+    flex: 1 1 calc(10% - 1rem) !important;
+    min-width: calc(10% - 1rem) !important;
+}
+</style>""",
+    unsafe_allow_html=True,
+)
+
+# Display the letter buttons
 col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10 = st.columns(10)
 
 button_a = col_1.button("A", key="A", disabled="A" in st.session_state.selected_letters)
@@ -117,11 +166,7 @@ button_x = col_4.button("X", key="X", disabled="X" in st.session_state.selected_
 button_y = col_5.button("Y", key="Y", disabled="Y" in st.session_state.selected_letters)
 button_z = col_6.button("Z", key="Z", disabled="Z" in st.session_state.selected_letters)
 
-if st.button('New Puzzle'):
-    getRandomPuzzle.clear()
-    st.session_state.selected_letters = []
-    st.rerun()
-
+# Check if a letter button was clicked
 if button_a:
     checkLetter("A")
 
@@ -200,10 +245,18 @@ if button_y:
 if button_z:
     checkLetter("Z")
 
-puzzle_lines = generatePuzzleBoard(puzzle)
+# Check if the puzzle has been solved
+puzzle_set = set(puzzle)
 
-st.image("""https://www.thewordfinder.com/wof-puzzle-generator/puzzle.php?bg=2&ln1=""" + puzzle_lines["ln1"][0] + 
-                                                                           """&ln2=""" + puzzle_lines["ln2"][0] + 
-                                                                           """&ln3=""" + puzzle_lines["ln3"][0] + 
-                                                                           """&ln4=""" + puzzle_lines["ln4"][0] + 
-                                                                           """&cat=""" + category_replace_ampersand + """&""")
+if " " in puzzle_set:
+    puzzle_set.remove(" ")
+
+if puzzle_set.issubset(set(st.session_state.selected_letters)):
+    st.balloons()
+    st.success("Congratulations!  You solved the puzzle!")
+
+# Start a new puzzle
+if st.button("New Puzzle"):
+    getRandomPuzzle.clear()
+    st.session_state.selected_letters = []
+    st.rerun()
