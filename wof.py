@@ -5,18 +5,19 @@ import json, random
 @st.cache_data
 def getRandomPuzzle():
     with open("puzzles.json", "r") as f:
+        # Load the puzzles from the JSON file
         puzzles = json.loads(f.read())
 
+        # Get a random category
         category = random.choice(list(puzzles.keys()))
-        puzzle = random.choice(puzzles[category]).upper()
+
+        # Get a random puzzle from the category and replace periods with nothing, commas with nothing, and hyphens with spaces
+        puzzle = random.choice(puzzles[category]).upper().replace(".", "").replace(",", "").replace(" - ", " ")
 
         return (category, puzzle)
 
 
 def generatePuzzleBoard(puzzle):
-    # Replace periods with nothing
-    puzzle = puzzle.replace(".", "").replace(",", "").replace(" - ", " ")
-
     # Replace letters with underscores
     puzzle_with_underscores = "".join(
         ["_" if c.isalpha() and c not in st.session_state.selected_letters else c for c in puzzle]
