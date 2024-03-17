@@ -4,20 +4,20 @@ import json, random, time
 
 @st.cache_data
 def getRandomPuzzle():
+    # Load the puzzles from the JSON file
     with open("puzzles.json", "r") as f:
-        # Load the puzzles from the JSON file
         puzzles = json.loads(f.read())
 
-        # Get a random category
-        category = random.choice(list(puzzles.keys()))
+    # Get a random category
+    category = random.choice(list(puzzles.keys()))
 
-        # Get a random puzzle from the category and replace periods with nothing, commas with nothing, and hyphens with a space
-        puzzle = random.choice(puzzles[category]).upper().replace(".", "").replace(",", "").replace(" - ", " ")
+    # Get a random puzzle from the category and replace periods with nothing, commas with nothing, and hyphens with a space
+    puzzle = random.choice(puzzles[category]).upper().replace(".", "").replace(",", "").replace(" - ", " ")
 
-        # Remove everything but letters from the puzzle and convert it to a set
-        puzzle_letter_set = set("".join([c for c in puzzle if c.isalpha()]))
+    # Remove everything but letters from the puzzle and convert it to a set
+    puzzle_letter_set = set("".join([c for c in puzzle if c.isalpha()]))
 
-        return (category, puzzle, puzzle_letter_set)
+    return (category, puzzle, puzzle_letter_set)
 
 
 def generatePuzzleBoard(puzzle):
@@ -87,34 +87,11 @@ def generatePuzzleBoard(puzzle):
 
 
 def checkLetter(letter):
-    st.session_state.last_selected_letter = letter
+    if letter not in st.session_state.selected_letters:
+        st.session_state.selected_letter = letter
+        st.session_state.selected_letters.append(letter)
 
-    if "last_selected_letter" in st.session_state:
-        last_selected_letter = st.session_state.last_selected_letter
-
-        if last_selected_letter in puzzle:
-            if last_selected_letter not in st.session_state.selected_letters:
-                st.session_state.selected_letters.append(last_selected_letter)
-
-                # Check if the puzzle has been solved
-                if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
-                    st.balloons()
-                    st.success("Congratulations!  You solved the puzzle!")
-                else:
-                    host_message = (
-                        "Correct!  There are "
-                        + str(puzzle.count(last_selected_letter))
-                        + " "
-                        + last_selected_letter
-                        + "'s in the puzzle."
-                    )
-                    st.success(host_message)
-                    st.toast(host_message)
-        else:
-            st.session_state.selected_letters.append(last_selected_letter)
-            host_message = "Sorry, there are no " + last_selected_letter + "'s in the puzzle."
-            st.error(host_message)
-            st.toast(host_message)
+    st.rerun()
 
 
 if __name__ == "__main__":
@@ -125,7 +102,9 @@ if __name__ == "__main__":
     category, puzzle, puzzle_letter_set = getRandomPuzzle()
 
     # Create a container to hold the Wheel of Fortune puzzle board (later in the script)
-    container_1 = st.container()
+    image_container = st.container()
+
+    host_message_container = st.container()
 
     st.write(
         """<style>
@@ -222,17 +201,11 @@ if __name__ == "__main__":
     if col_8.button("Z", key="Z", disabled="Z" in st.session_state.selected_letters):
         checkLetter("Z")
 
-    # Start a new puzzle
-    if st.button("New Puzzle", key="new_puzzle"):
-        getRandomPuzzle.clear()
-        st.session_state.selected_letters = []
-        st.rerun()
-
     # Generate the puzzle board
     puzzle_lines = generatePuzzleBoard(puzzle)
 
     # Display the Wheel of Fortune puzzle board
-    container_1.image(
+    image_container.image(
         """https://www.thewordfinder.com/wof-puzzle-generator/puzzle.php?bg=2&ln1="""
         + puzzle_lines["ln1"][0]
         + """&ln2="""
@@ -245,3 +218,31 @@ if __name__ == "__main__":
         + category.replace("&", "%26")
         + """&"""
     )
+
+    # Check if the selected letter is in the puzzle
+    selected_letter = ""
+
+    if "selected_letter" in st.session_state:
+        selected_letter = st.session_state.selected_letter
+
+    if selected_letter.isalpha() and selected_letter in puzzle:
+        # Check if the puzzle has been solved
+        if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
+            st.balloons()
+            host_message = "Congratulations!  You solved the puzzle!"
+            host_message_container.success(host_message)
+        else:
+            host_message = "Correct!  There are " + str(puzzle.count(selected_letter)) + " " + selected_letter + "'s in the puzzle."
+            host_message_container.success(host_message)
+            # st.toast(host_message)
+    elif selected_letter.isalpha() and selected_letter not in puzzle:
+        host_message = "Sorry, there are no " + selected_letter + "'s in the puzzle."
+        host_message_container.error(host_message)
+        # st.toast(host_message)
+
+    # Start a new puzzle
+    if st.button("New Puzzle", key="new_puzzle"):
+        getRandomPuzzle.clear()
+        for key in st.session_state.keys():
+            del st.session_state[key]
+        st.rerun()
