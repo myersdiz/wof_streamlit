@@ -1,5 +1,5 @@
 import streamlit as st
-import json, random
+import json, random, time
 
 
 @st.cache_data
@@ -11,17 +11,23 @@ def getRandomPuzzle():
         # Get a random category
         category = random.choice(list(puzzles.keys()))
 
-        # Get a random puzzle from the category and replace periods with nothing, commas with nothing, and hyphens with spaces
+        # Get a random puzzle from the category and replace periods with nothing, commas with nothing, and hyphens with a space
         puzzle = random.choice(puzzles[category]).upper().replace(".", "").replace(",", "").replace(" - ", " ")
 
-        return (category, puzzle)
+        # Remove everything but letters from the puzzle and convert it to a set
+        puzzle_letter_set = set("".join([c for c in puzzle if c.isalpha()]))
+
+        return (category, puzzle, puzzle_letter_set)
 
 
 def generatePuzzleBoard(puzzle):
+    if "selected_letters" in st.session_state:
+        selected_letters = st.session_state.selected_letters
+    else:
+        selected_letters = []
+
     # Replace letters with underscores
-    puzzle_with_underscores = "".join(
-        ["_" if c.isalpha() and c not in st.session_state.selected_letters else c for c in puzzle]
-    )
+    puzzle_with_underscores = "".join(["_" if c.isalpha() and c not in selected_letters else c for c in puzzle])
 
     # Count words in puzzle
     puzzle_words = puzzle_with_underscores.split(" ")
@@ -81,183 +87,161 @@ def generatePuzzleBoard(puzzle):
 
 
 def checkLetter(letter):
-    if letter in puzzle:
-        if letter not in st.session_state.selected_letters:
-            st.session_state.selected_letters.append(letter)
-            host_message = "Correct!  There are " + str(puzzle.count(letter)) + " " + letter + "'s in the puzzle."
-            st.success(host_message)
+    st.session_state.last_selected_letter = letter
+
+    if "last_selected_letter" in st.session_state:
+        last_selected_letter = st.session_state.last_selected_letter
+
+        if last_selected_letter in puzzle:
+            if last_selected_letter not in st.session_state.selected_letters:
+                st.session_state.selected_letters.append(last_selected_letter)
+
+                # Check if the puzzle has been solved
+                if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
+                    st.balloons()
+                    st.success("Congratulations!  You solved the puzzle!")
+                else:
+                    host_message = (
+                        "Correct!  There are "
+                        + str(puzzle.count(last_selected_letter))
+                        + " "
+                        + last_selected_letter
+                        + "'s in the puzzle."
+                    )
+                    st.success(host_message)
+                    st.toast(host_message)
+        else:
+            st.session_state.selected_letters.append(last_selected_letter)
+            host_message = "Sorry, there are no " + last_selected_letter + "'s in the puzzle."
+            st.error(host_message)
             st.toast(host_message)
-    else:
-        st.session_state.selected_letters.append(letter)
-        host_message = "Sorry, there are no " + letter + "'s in the puzzle."
-        st.error(host_message)
-        st.toast(host_message)
-
-    st.rerun()
 
 
-if "selected_letters" not in st.session_state:
-    st.session_state.selected_letters = []
+if __name__ == "__main__":
+    # Display the title
+    st.title("Wheel of Disney")
 
-# Display the title
-st.title("Wheel of Disney")
+    # Get a random puzzle
+    category, puzzle, puzzle_letter_set = getRandomPuzzle()
 
-# Get a random puzzle
-category, puzzle = getRandomPuzzle()
+    # Create a container to hold the Wheel of Fortune puzzle board (later in the script)
+    container_1 = st.container()
 
-# Generate the puzzle board
-puzzle_lines = generatePuzzleBoard(puzzle)
+    st.write(
+        """<style>
+            [data-testid="column"] {
+                width: calc(11% - 1rem) !important;
+                flex: 1 1 calc(11% - 1rem) !important;
+                min-width: calc(11% - 1rem) !important;
+            }
+           </style>""",
+        unsafe_allow_html=True,
+    )
 
-# Display the Wheel of Fortune puzzle board
-st.image(
-    """https://www.thewordfinder.com/wof-puzzle-generator/puzzle.php?bg=2&ln1="""
-    + puzzle_lines["ln1"][0]
-    + """&ln2="""
-    + puzzle_lines["ln2"][0]
-    + """&ln3="""
-    + puzzle_lines["ln3"][0]
-    + """&ln4="""
-    + puzzle_lines["ln4"][0]
-    + """&cat="""
-    + category.replace("&", "%26")
-    + """&"""
-)
+    # Display the letter buttons
+    col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9 = st.columns(9)
 
-st.write(
-    """<style>
+    if "selected_letters" not in st.session_state:
+        st.session_state.selected_letters = []
 
-[data-testid="column"] {
-    width: calc(10% - 1rem) !important;
-    flex: 1 1 calc(10% - 1rem) !important;
-    min-width: calc(10% - 1rem) !important;
-}
-</style>""",
-    unsafe_allow_html=True,
-)
+    if col_1.button("A", key="A", disabled="A" in st.session_state.selected_letters):
+        checkLetter("A")
 
-# Display the letter buttons
-col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10 = st.columns(10)
+    if col_2.button("B", key="B", disabled="B" in st.session_state.selected_letters):
+        checkLetter("B")
 
-button_a = col_1.button("A", key="A", disabled="A" in st.session_state.selected_letters)
-button_b = col_2.button("B", key="B", disabled="B" in st.session_state.selected_letters)
-button_c = col_3.button("C", key="C", disabled="C" in st.session_state.selected_letters)
-button_d = col_4.button("D", key="D", disabled="D" in st.session_state.selected_letters)
-button_e = col_5.button("E", key="E", disabled="E" in st.session_state.selected_letters)
-button_f = col_6.button("F", key="F", disabled="F" in st.session_state.selected_letters)
-button_g = col_7.button("G", key="G", disabled="G" in st.session_state.selected_letters)
-button_h = col_8.button("H", key="H", disabled="H" in st.session_state.selected_letters)
-button_i = col_9.button("I", key="I", disabled="I" in st.session_state.selected_letters)
-button_j = col_10.button("J", key="J", disabled="J" in st.session_state.selected_letters)
+    if col_3.button("C", key="C", disabled="C" in st.session_state.selected_letters):
+        checkLetter("C")
 
-button_k = col_1.button("K", key="K", disabled="K" in st.session_state.selected_letters)
-button_l = col_2.button("L", key="L", disabled="L" in st.session_state.selected_letters)
-button_m = col_3.button("M", key="M", disabled="M" in st.session_state.selected_letters)
-button_n = col_4.button("N", key="N", disabled="N" in st.session_state.selected_letters)
-button_o = col_5.button("O", key="O", disabled="O" in st.session_state.selected_letters)
-button_p = col_6.button("P", key="P", disabled="P" in st.session_state.selected_letters)
-button_q = col_7.button("Q", key="Q", disabled="Q" in st.session_state.selected_letters)
-button_r = col_8.button("R", key="R", disabled="R" in st.session_state.selected_letters)
-button_s = col_9.button("S", key="S", disabled="S" in st.session_state.selected_letters)
-button_t = col_10.button("T", key="T", disabled="T" in st.session_state.selected_letters)
+    if col_4.button("D", key="D", disabled="D" in st.session_state.selected_letters):
+        checkLetter("D")
 
-button_u = col_1.button("U", key="U", disabled="U" in st.session_state.selected_letters)
-button_v = col_2.button("V", key="V", disabled="V" in st.session_state.selected_letters)
-button_w = col_3.button("W", key="W", disabled="W" in st.session_state.selected_letters)
-button_x = col_4.button("X", key="X", disabled="X" in st.session_state.selected_letters)
-button_y = col_5.button("Y", key="Y", disabled="Y" in st.session_state.selected_letters)
-button_z = col_6.button("Z", key="Z", disabled="Z" in st.session_state.selected_letters)
+    if col_5.button("E", key="E", disabled="E" in st.session_state.selected_letters):
+        checkLetter("E")
 
-# Check if a letter button was clicked
-if button_a:
-    checkLetter("A")
+    if col_6.button("F", key="F", disabled="F" in st.session_state.selected_letters):
+        checkLetter("F")
 
-if button_b:
-    checkLetter("B")
+    if col_7.button("G", key="G", disabled="G" in st.session_state.selected_letters):
+        checkLetter("G")
 
-if button_c:
-    checkLetter("C")
+    if col_8.button("H", key="H", disabled="H" in st.session_state.selected_letters):
+        checkLetter("H")
 
-if button_d:
-    checkLetter("D")
+    if col_9.button("I", key="I", disabled="I" in st.session_state.selected_letters):
+        checkLetter("I")
 
-if button_e:
-    checkLetter("E")
+    if col_1.button("J", key="J", disabled="J" in st.session_state.selected_letters):
+        checkLetter("J")
 
-if button_f:
-    checkLetter("F")
+    if col_2.button("K", key="K", disabled="K" in st.session_state.selected_letters):
+        checkLetter("K")
 
-if button_g:
-    checkLetter("G")
+    if col_3.button("L", key="L", disabled="L" in st.session_state.selected_letters):
+        checkLetter("L")
 
-if button_h:
-    checkLetter("H")
+    if col_4.button("M", key="M", disabled="M" in st.session_state.selected_letters):
+        checkLetter("M")
 
-if button_i:
-    checkLetter("I")
+    if col_5.button("N", key="N", disabled="N" in st.session_state.selected_letters):
+        checkLetter("N")
 
-if button_j:
-    checkLetter("J")
+    if col_6.button("O", key="O", disabled="O" in st.session_state.selected_letters):
+        checkLetter("O")
 
-if button_k:
-    checkLetter("K")
+    if col_7.button("P", key="P", disabled="P" in st.session_state.selected_letters):
+        checkLetter("P")
 
-if button_l:
-    checkLetter("L")
+    if col_8.button("Q", key="Q", disabled="Q" in st.session_state.selected_letters):
+        checkLetter("Q")
 
-if button_m:
-    checkLetter("M")
+    if col_9.button("R", key="R", disabled="R" in st.session_state.selected_letters):
+        checkLetter("R")
 
-if button_n:
-    checkLetter("N")
+    if col_1.button("S", key="S", disabled="S" in st.session_state.selected_letters):
+        checkLetter("S")
 
-if button_o:
-    checkLetter("O")
+    if col_2.button("T", key="T", disabled="T" in st.session_state.selected_letters):
+        checkLetter("T")
 
-if button_p:
-    checkLetter("P")
+    if col_3.button("U", key="U", disabled="U" in st.session_state.selected_letters):
+        checkLetter("U")
 
-if button_q:
-    checkLetter("Q")
+    if col_4.button("V", key="V", disabled="V" in st.session_state.selected_letters):
+        checkLetter("V")
 
-if button_r:
-    checkLetter("R")
+    if col_5.button("W", key="W", disabled="W" in st.session_state.selected_letters):
+        checkLetter("W")
 
-if button_s:
-    checkLetter("S")
+    if col_6.button("X", key="X", disabled="X" in st.session_state.selected_letters):
+        checkLetter("X")
 
-if button_t:
-    checkLetter("T")
+    if col_7.button("Y", key="Y", disabled="Y" in st.session_state.selected_letters):
+        checkLetter("Y")
 
-if button_u:
-    checkLetter("U")
+    if col_8.button("Z", key="Z", disabled="Z" in st.session_state.selected_letters):
+        checkLetter("Z")
 
-if button_v:
-    checkLetter("V")
+    # Start a new puzzle
+    if st.button("New Puzzle", key="new_puzzle"):
+        getRandomPuzzle.clear()
+        st.session_state.selected_letters = []
+        st.rerun()
 
-if button_w:
-    checkLetter("W")
+    # Generate the puzzle board
+    puzzle_lines = generatePuzzleBoard(puzzle)
 
-if button_x:
-    checkLetter("X")
-
-if button_y:
-    checkLetter("Y")
-
-if button_z:
-    checkLetter("Z")
-
-# Check if the puzzle has been solved
-puzzle_set = set(puzzle)
-
-if " " in puzzle_set:
-    puzzle_set.remove(" ")
-
-if puzzle_set.issubset(set(st.session_state.selected_letters)):
-    st.balloons()
-    st.success("Congratulations!  You solved the puzzle!")
-
-# Start a new puzzle
-if st.button("New Puzzle"):
-    getRandomPuzzle.clear()
-    st.session_state.selected_letters = []
-    st.rerun()
+    # Display the Wheel of Fortune puzzle board
+    container_1.image(
+        """https://www.thewordfinder.com/wof-puzzle-generator/puzzle.php?bg=2&ln1="""
+        + puzzle_lines["ln1"][0]
+        + """&ln2="""
+        + puzzle_lines["ln2"][0]
+        + """&ln3="""
+        + puzzle_lines["ln3"][0]
+        + """&ln4="""
+        + puzzle_lines["ln4"][0]
+        + """&cat="""
+        + category.replace("&", "%26")
+        + """&"""
+    )
