@@ -1,5 +1,35 @@
 import streamlit as st
-import json, random, time
+import base64, json, random
+
+
+@st.cache_data
+def loadAudioFiles():
+    with open("assets/audio/buzzer.mp3", "rb") as f:
+        data = f.read()
+        buzzer_b64 = base64.b64encode(data).decode()
+
+    with open("assets/audio/ding.mp3", "rb") as f:
+        data = f.read()
+        ding_b64 = base64.b64encode(data).decode()
+
+    with open("assets/audio/new_puzzle.mp3", "rb") as f:
+        data = f.read()
+        new_puzzle_b64 = base64.b64encode(data).decode()
+
+    with open("assets/audio/solved_puzzle.mp3", "rb") as f:
+        data = f.read()
+        solved_puzzle_b64 = base64.b64encode(data).decode()
+
+    return buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64
+
+
+def autoplay_audio(audio_file):
+    audio_html = f"""
+        <audio autoplay="true">
+        <source src="data:audio/mp3;base64,{audio_file}" type="audio/mp3">
+        </audio>
+        """
+    audio_container.write(audio_html, unsafe_allow_html=True, key="audio")
 
 
 @st.cache_data
@@ -95,16 +125,22 @@ def checkLetter(letter):
 
 
 if __name__ == "__main__":
+    buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64 = loadAudioFiles()
+
     # Display the title
     st.title("Wheel of Disney")
 
     # Get a random puzzle
     category, puzzle, puzzle_letter_set = getRandomPuzzle()
 
-    # Create a container to hold the Wheel of Fortune puzzle board (later in the script)
+    # Create a container to hold the Wheel of Fortune puzzle board image
     image_container = st.container()
 
+    # Create a container to hold the host messages
     host_message_container = st.container()
+
+    # Create an empty container to hold the audio
+    audio_container = st.empty()
 
     st.write(
         """<style>
@@ -117,11 +153,14 @@ if __name__ == "__main__":
         unsafe_allow_html=True,
     )
 
-    # Display the letter buttons
-    col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9 = st.columns(9)
-
     if "selected_letters" not in st.session_state:
         st.session_state.selected_letters = []
+
+        # Play the new puzzle sound
+        autoplay_audio(new_puzzle_b64)
+
+    # Display the letter buttons
+    col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9 = st.columns(9)
 
     if col_1.button("A", key="A", disabled="A" in st.session_state.selected_letters):
         checkLetter("A")
@@ -231,18 +270,29 @@ if __name__ == "__main__":
             st.balloons()
             host_message = "Congratulations!  You solved the puzzle!"
             host_message_container.success(host_message)
+            autoplay_audio(solved_puzzle_b64)
         else:
-            host_message = "Correct!  There are " + str(puzzle.count(selected_letter)) + " " + selected_letter + "'s in the puzzle."
+            host_message = (
+                "Correct!  There are "
+                + str(puzzle.count(selected_letter))
+                + " "
+                + selected_letter
+                + "'s in the puzzle."
+            )
             host_message_container.success(host_message)
+            autoplay_audio(ding_b64)
             # st.toast(host_message)
     elif selected_letter.isalpha() and selected_letter not in puzzle:
         host_message = "Sorry, there are no " + selected_letter + "'s in the puzzle."
         host_message_container.error(host_message)
+        autoplay_audio(buzzer_b64)
         # st.toast(host_message)
 
     # Start a new puzzle
     if st.button("New Puzzle", key="new_puzzle"):
         getRandomPuzzle.clear()
+
         for key in st.session_state.keys():
             del st.session_state[key]
+
         st.rerun()
