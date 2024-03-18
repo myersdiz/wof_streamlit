@@ -29,7 +29,7 @@ def autoplay_audio(audio_file):
         <source src="data:audio/mp3;base64,{audio_file}" type="audio/mp3">
         </audio>
         """
-    audio_container.write(audio_html, unsafe_allow_html=True, key="audio")
+    audio_container.markdown(audio_html, unsafe_allow_html=True)
 
 
 @st.cache_data
