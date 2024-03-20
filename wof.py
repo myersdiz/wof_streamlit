@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import base64, json, random
 
 
@@ -29,20 +30,24 @@ def autoplay_audio(audio_file):
         <source src="data:audio/mp3;base64,{audio_file}" type="audio/mp3">
         </audio>
         """
-    audio_container.markdown(audio_html, unsafe_allow_html=True)
+    st.components.v1.html(audio_html, width=0, height=0, scrolling=False)
 
 
 @st.cache_data
-def getRandomPuzzle():
+def getRandomPuzzle(puzzle_file):
     # Load the puzzles from the JSON file
-    with open("puzzles.json", "r") as f:
+    with open("puzzle_parser/" + puzzle_file, "r") as f:
         puzzles = json.loads(f.read())
 
-    # Get a random category
-    category = random.choice(list(puzzles.keys()))
+    # Convert dictionary puzzles to Pandas DataFrame
+    df_puzzles = pd.DataFrame(puzzles)
 
-    # Get a random puzzle from the category and replace periods with nothing, commas with nothing, and hyphens with a space
-    puzzle = random.choice(puzzles[category]).upper().replace(".", "").replace(",", "").replace(" - ", " ")
+    # Pick one random row from the Pandas DataFrame
+    df_puzzles = df_puzzles.sample(n=1)
+
+    category = df_puzzles["CATEGORY"].values[0]
+
+    puzzle = df_puzzles["PUZZLE"].values[0]
 
     # Remove everything but letters from the puzzle and convert it to a set
     puzzle_letter_set = set("".join([c for c in puzzle if c.isalpha()]))
@@ -125,22 +130,25 @@ def checkLetter(letter):
 
 
 if __name__ == "__main__":
+    # Create a list of puzzle file names starting with season_1.json and ending with season_41.json
+    puzzle_files = ["season_" + str(i) + ".json" for i in range(1, 42)]
+
+    # Load the audio files
     buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64 = loadAudioFiles()
 
     # Display the title
-    st.title("Wheel of Disney")
+    st.title("Glücksrad")
+
+    puzzle_file = st.sidebar.selectbox("Select Season", puzzle_files)
 
     # Get a random puzzle
-    category, puzzle, puzzle_letter_set = getRandomPuzzle()
+    category, puzzle, puzzle_letter_set = getRandomPuzzle(puzzle_file)
 
     # Create a container to hold the Wheel of Fortune puzzle board image
     image_container = st.container()
 
     # Create a container to hold the host messages
     host_message_container = st.container()
-
-    # Create an empty container to hold the audio
-    audio_container = st.empty()
 
     st.write(
         """<style>
