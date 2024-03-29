@@ -178,6 +178,18 @@ if __name__ == "__main__":
 
     puzzle_file = st.sidebar.selectbox("Select Season", puzzle_files)
 
+    # Display the title
+    st.title("Glücksrad")
+
+    # Get a random puzzle
+    category, puzzle, puzzle_letter_set = getRandomPuzzle(puzzle_file)
+
+    # Create a container to hold the Wheel of Fortune puzzle board image
+    image_container = st.container()
+
+    # Create a container to hold the host messages
+    host_message_container = st.container()
+
     # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
     if "selected_letters" not in st.session_state:
         st.session_state.selected_letters = []
@@ -194,11 +206,11 @@ if __name__ == "__main__":
         setHasEnoughMoneyToBuyVowel()
 
     if st.session_state.MustSpinWheel:
-        st.sidebar.warning("You must spin the wheel before selecting a letter.")
+        host_message_container.warning("You must spin the wheel before selecting a letter.")
     else:
-        st.sidebar.success("You may now select a letter.")
+        host_message_container.success("You may now select a letter.")
 
-    if st.sidebar.button("Spin Wheel", key="spin_wheel"):
+    if st.button("Spin Wheel", key="spin_wheel"):
         setMustSpinWheel(False)
 
     if st.sidebar.button("New Puzzle", key="new_puzzle"):
@@ -209,33 +221,23 @@ if __name__ == "__main__":
 
         st.rerun()
 
-    # Display the title
-    st.title("Glücksrad")
+#    st.write(
+#        """<style>
+#            [data-testid="column"] {
+#                width: calc(14% - 1rem) !important;
+#                flex: 1 1 calc(14% - 1rem) !important;
+#                min-width: calc(14% - 1rem) !important;
+#            }
+#            </style>""",
+#        unsafe_allow_html=True,
+#    )
 
-    # Get a random puzzle
-    category, puzzle, puzzle_letter_set = getRandomPuzzle(puzzle_file)
-
-    # Create a container to hold the Wheel of Fortune puzzle board image
-    image_container = st.container()
-
-    # Create a container to hold the host messages
-    host_message_container = st.container()
-
-    st.write(
-        """<style>
-            [data-testid="column"] {
-                width: calc(14% - 1rem) !important;
-                flex: 1 1 calc(14% - 1rem) !important;
-                min-width: calc(14% - 1rem) !important;
-            }
-           </style>""",
-        unsafe_allow_html=True,
-    )
+    consonants = st.container()
 
     # Display the consontant buttons
-    st.write("Consonants")
+    consonants.write("Consonants")
 
-    consonant_1, consonant_2, consonant_3, consonant_4, consonant_5, consonant_6, consonant_7 = st.columns(7)
+    consonant_1, consonant_2, consonant_3, consonant_4, consonant_5, consonant_6, consonant_7 = consonants.columns(7)
 
     if consonant_1.button(
         "B",
@@ -384,10 +386,12 @@ if __name__ == "__main__":
     ):
         checkLetter("Z")
 
-    # Display the consontant buttons
-    st.write("Vowels")
+    vowels = st.container()
 
-    vowel_1, vowel_2, vowel_3, vowel_4, vowel_5, vowel_6, vowel_7 = st.columns(7)
+    # Display the consontant buttons
+    vowels.write("Vowels")
+
+    vowel_1, vowel_2, vowel_3, vowel_4, vowel_5, vowel_6, vowel_7 = vowels.columns(7)
 
     if vowel_1.button(
         "A",
