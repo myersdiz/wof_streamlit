@@ -135,17 +135,11 @@ def get_random_puzzle(puzzle_file: str) -> tuple[str, str, set]:
     return category, puzzle, puzzle_letter_set, round
 
 
-def generate_puzzle_board(puzzle: str, round: str) -> dict:
+def generate_puzzle_board(puzzle: str) -> dict:
     if "selected_letters" in st.session_state:
         selected_letters = st.session_state.selected_letters
     else:
         selected_letters = []
-
-    # If round is "Bonus Round" then add R, S, T, L, N, and E to the selected letters
-    if round == "Bonus Round":
-        for letter in "RSTLNE":
-            if letter not in st.session_state.selected_letters:
-                st.session_state.selected_letters.append(letter)
 
     # Replace letters with underscores
     puzzle_with_underscores = "".join(["_" if c.isalpha() and c not in selected_letters else c for c in puzzle])
@@ -289,8 +283,7 @@ if __name__ == "__main__":
         elif selected_letter.isalpha() and selected_letter not in puzzle:
             if selected_letter in ["A", "E", "I", "O", "U"]:
                 add_amount_to_contenstant_score(-250)
-            host_message = "Sorry, there are no " + selected_letter + "'s in the puzzle."
-            puzzle_message_container.error(host_message)
+            puzzle_message_container.error("Sorry, there are no " + selected_letter + "'s in the puzzle.")
             play_audio(buzzer_b64)
 
     st.sidebar.write("Puzzle from " + round)
@@ -298,6 +291,14 @@ if __name__ == "__main__":
     # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
     if "selected_letters" not in st.session_state:
         st.session_state.selected_letters = []
+
+        # If round is "Bonus Round" then add R, S, T, L, N, and E to the selected letters
+        if round == "Bonus Round":
+            for letter in "RSTLNE":
+                if letter not in st.session_state.selected_letters:
+                    st.session_state.selected_letters.append(letter)
+
+            puzzle_message_container.warning("The letters R, S, T, L, N, and E are already filled in for you.")
 
         set_check_letter(False)
         add_amount_to_contenstant_score(0)
@@ -353,16 +354,13 @@ if __name__ == "__main__":
     # Disable consonants if:
     # 1. The contestant must spin the wheel
     # 2. The puzzle has been solved
-    disable_consonants = st.session_state.must_spin_wheel or \
-                         st.session_state.puzzle_solved
+    disable_consonants = st.session_state.must_spin_wheel or st.session_state.puzzle_solved
 
     # Disable vowels if:
     # 1. The contestant does not have enough money to buy a vowel
     # 2. The puzzle has been solved
     # 3. The puzzle does not contain any more vowels
-    disable_vowels = not st.session_state.has_enough_month_to_buy_vowels or \
-                     st.session_state.puzzle_solved or \
-                     not puzzle_letter_set.intersection(set("AEIOU"))
+    disable_vowels = not st.session_state.has_enough_month_to_buy_vowels or st.session_state.puzzle_solved or not puzzle_letter_set.intersection(set("AEIOU"))
 
     if col_1.button(label="A", key="A", disabled="A" in st.session_state.selected_letters or disable_vowels):
         check_letter("A")
@@ -442,8 +440,8 @@ if __name__ == "__main__":
     if col_6.button(label="Z", key="Z", disabled="Z" in st.session_state.selected_letters or disable_consonants):
         check_letter("Z")
 
-    # Generate the puzzle board
-    puzzle_lines = generate_puzzle_board(puzzle, round)
+    # Generate the puzzle board lines
+    puzzle_lines = generate_puzzle_board(puzzle)
 
     # Display the Wheel of Fortune puzzle board
     image_container.image(
