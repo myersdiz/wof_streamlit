@@ -98,10 +98,12 @@ def getRandomPuzzle(puzzle_file) -> tuple[str, str, set]:
 
     puzzle = df_puzzles["PUZZLE"].values[0]
 
+    round = df_puzzles["ROUND"].values[0]
+
     # Remove everything but letters from the puzzle and convert it to a set
     puzzle_letter_set = set("".join([c for c in puzzle if c.isalpha()]))
 
-    return (category, puzzle, puzzle_letter_set)
+    return (category, puzzle, puzzle_letter_set, round)
 
 
 def generatePuzzleBoard(puzzle) -> dict:
@@ -194,7 +196,7 @@ if __name__ == "__main__":
     st.title("Glücksrad")
 
     # Get a random puzzle
-    category, puzzle, puzzle_letter_set = getRandomPuzzle(puzzle_file)
+    category, puzzle, puzzle_letter_set, round = getRandomPuzzle(puzzle_file)
 
     # Create a container to hold the Wheel of Fortune puzzle board image
     image_container = st.container()
@@ -250,7 +252,6 @@ if __name__ == "__main__":
                     autoplay_audio(ding_b64)
                     # time.sleep(1.50)
                 # st.toast(host_message)
-                # st.rerun()
         elif selected_letter.isalpha() and selected_letter not in puzzle:
             if selected_letter in ["A", "E", "I", "O", "U"]:
                 addAmountToContestantScore(-250)
@@ -258,6 +259,8 @@ if __name__ == "__main__":
             puzzle_message_container.error(host_message)
             autoplay_audio(buzzer_b64)
             # st.toast(host_message)
+
+    st.sidebar.write("Round: " + round)
 
     st.sidebar.write("Contestant Score: $" + str(st.session_state.ContestantScore))
 
@@ -277,7 +280,7 @@ if __name__ == "__main__":
         setHasEnoughMoneyToBuyVowel()
 
     # Display the spin wheel button
-    if st.button("Spin Wheel", key="spin_wheel"):
+    if st.button("Spin Wheel", key="spin_wheel", disabled=st.session_state.PuzzleSolved):
         setMustSpinWheel(False)
 
     # Display the new puzzle button
