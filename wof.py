@@ -87,14 +87,14 @@ def play_audio(audio_file: str) -> None:
 
 
 @st.cache_data
-def load_wheel_prizes() -> list[str]:
+def load_wheel_prizes() -> dict[str, str]:
     with open("wheel_prizes.json", "r") as f:
         wheel_prizes = json.loads(f.read())
 
     return wheel_prizes
 
 
-def get_wheel_prize(wheel_prizes) -> dict[str, str]:
+def get_wheel_prize(wheel_prizes) -> tuple[str, str]:
     wheel_prize = random.choice(list(wheel_prizes.items()))
 
     return wheel_prize
@@ -103,7 +103,7 @@ def get_wheel_prize(wheel_prizes) -> dict[str, str]:
 @st.cache_data
 def get_random_puzzle(puzzle_file: str) -> tuple[str, str, set]:
     # Load the puzzles from the JSON file
-    with open("puzzle_parser/" + puzzle_file.replace(" ","_").lower() + ".json", "r") as f:
+    with open("puzzle_parser/" + puzzle_file.replace(" ", "_").lower() + ".json", "r") as f:
         puzzles = json.loads(f.read())
 
     # Convert dictionary puzzles to Pandas DataFrame
@@ -124,6 +124,8 @@ def get_random_puzzle(puzzle_file: str) -> tuple[str, str, set]:
         round = "Round " + round[1:2]
     elif round.startswith("T"):
         round = "Toss-Up Round"
+    elif round.startswith("P"):
+        round = "Prize Puzzle"
     else:
         round = "Unknown Round"
 
@@ -281,7 +283,7 @@ if __name__ == "__main__":
                     add_amount_to_contenstant_score(-250)
                 for i in range(puzzle.count(selected_letter)):
                     if selected_letter not in ["A", "E", "I", "O", "U"]:
-                        add_amount_to_contenstant_score(250)
+                        add_amount_to_contenstant_score(st.session_state.prize_amount)
                     play_audio(ding_b64)
                     # time.sleep(1.50)
         elif selected_letter.isalpha() and selected_letter not in puzzle:
@@ -292,8 +294,6 @@ if __name__ == "__main__":
             play_audio(buzzer_b64)
 
     st.sidebar.write("Puzzle from " + round)
-
-    st.sidebar.write("Contestant Score: $" + str(st.session_state.contestant_score))
 
     # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
     if "selected_letters" not in st.session_state:
@@ -311,13 +311,27 @@ if __name__ == "__main__":
         set_has_enough_money_to_buy_vowel()
 
     # Display the spin wheel button
-    if st.button("Spin Wheel", key="spin_wheel", disabled=st.session_state.puzzle_solved):
+    if st.button(label="Spin Wheel", key="spin_wheel", disabled=st.session_state.puzzle_solved):
         set_must_spin_wheel(False)
 
         wheel_prize = get_wheel_prize(wheel_prizes)
 
+        st.session_state.prize_name = wheel_prize[1]["prize_name"]
+        st.session_state.prize_amount = wheel_prize[1]["prize_amount"]
+
+        if st.session_state.prize_name == "Bankrupt":
+            set_must_spin_wheel(True)
+            add_amount_to_contenstant_score(-st.session_state.contestant_score)
+            play_audio(bankrupt_b64)
+            puzzle_message_container.error("Sorry, you spun Bankrupt.  You lose all your money.")
+        else:
+            puzzle_message_container.success("You spun " + st.session_state.prize_name)
+
+    # Display the contestant score
+    st.sidebar.write("Contestant Score: $" + str(st.session_state.contestant_score))
+
     # Display the new puzzle button
-    if st.sidebar.button("New Puzzle", key="new_puzzle"):
+    if st.sidebar.button(label="New Puzzle", key="new_puzzle"):
         reset_game()
         st.rerun()
 
