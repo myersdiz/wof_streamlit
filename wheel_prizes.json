@@ -1,0 +1,90 @@
+{
+    "Bankrupt-1": {
+        "prize_amount": 0,
+        "prize_name": "Bankrupt"
+    },
+    "Bankrupt-2": {
+        "prize_amount": 0,
+        "prize_name": "Bankrupt"
+    },
+    "LoseATurn": {
+        "prize_amount": 0,
+        "prize_name": "Lose a Turn"
+    },
+    "5000": {
+        "prize_amount": 5000,
+        "prize_name": "$5000"
+    },
+    "900": {
+        "prize_amount": 900,
+        "prize_name": "$900"
+    },
+    "800": {
+        "prize_amount": 800,
+        "prize_name": "$800"
+    },
+    "700-1": {
+        "prize_amount": 700,
+        "prize_name": "$700"
+    },
+    "700-2": {
+        "prize_amount": 700,
+        "prize_name": "$700"
+    },
+    "700-3": {
+        "prize_amount": 700,
+        "prize_name": "$700"
+    },
+    "650-1": {
+        "prize_amount": 650,
+        "prize_name": "$650"
+    },
+    "650-2": {
+        "prize_amount": 650,
+        "prize_name": "$650"
+    },
+    "650-3": {
+        "prize_amount": 650,
+        "prize_name": "$650"
+    },
+    "600-1": {
+        "prize_amount": 600,
+        "prize_name": "$600"
+    },
+    "600-2": {
+        "prize_amount": 600,
+        "prize_name": "$600"
+    },
+    "600-3": {
+        "prize_amount": 600,
+        "prize_name": "$600"
+    },
+    "600-4": {
+        "prize_amount": 600,
+        "prize_name": "$600"
+    },
+    "550": {
+        "prize_amount": 550,
+        "prize_name": "$550"
+    },
+    "500-1": {
+        "prize_amount": 500,
+        "prize_name": "$500"
+    },
+    "500-2": {
+        "prize_amount": 500,
+        "prize_name": "$500"
+    },
+    "500-3": {
+        "prize_amount": 500,
+        "prize_name": "$500"
+    },
+    "500-4": {
+        "prize_amount": 500,
+        "prize_name": "$500"
+    },
+    "500-5": {
+        "prize_amount": 500,
+        "prize_name": "$500"
+    }
+}
