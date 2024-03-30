@@ -338,105 +338,109 @@ if __name__ == "__main__":
     st.write(
         """<style>
             [data-testid="column"] {
-                width: calc(14% - 1rem) !important;
-                flex: 1 1 calc(14% - 1rem) !important;
-                min-width: calc(14% - 1rem) !important;
+                width: calc(10% - 1rem) !important;
+                flex: 1 1 calc(10% - 1rem) !important;
+                min-width: calc(10% - 1rem) !important;
             }
             </style>""",
         unsafe_allow_html=True,
     )
 
-    # Display the consontant buttons
-    st.write("Consonants")
+    st.write("Letter board")
 
-    consonant_1, consonant_2, consonant_3, consonant_4, consonant_5, consonant_6, consonant_7 = st.columns(7)
+    col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10 = st.columns(10)
 
-    disable_consonants = st.session_state.must_spin_wheel or st.session_state.puzzle_solved
+    # Disable consonants if:
+    # 1. The contestant must spin the wheel
+    # 2. The puzzle has been solved
+    disable_consonants = st.session_state.must_spin_wheel or \
+                         st.session_state.puzzle_solved
 
-    if consonant_1.button(label="B", key="B", disabled="B" in st.session_state.selected_letters or disable_consonants):
-        check_letter("B")
+    # Disable vowels if:
+    # 1. The contestant does not have enough money to buy a vowel
+    # 2. The puzzle has been solved
+    # 3. The puzzle does not contain any more vowels
+    disable_vowels = not st.session_state.has_enough_month_to_buy_vowels or \
+                     st.session_state.puzzle_solved or \
+                     not puzzle_letter_set.intersection(set("AEIOU"))
 
-    if consonant_2.button(label="C", key="C", disabled="C" in st.session_state.selected_letters or disable_consonants):
-        check_letter("C")
-
-    if consonant_3.button(label="D", key="D", disabled="D" in st.session_state.selected_letters or disable_consonants):
-        check_letter("D")
-
-    if consonant_4.button(label="F", key="F", disabled="F" in st.session_state.selected_letters or disable_consonants):
-        check_letter("F")
-
-    if consonant_5.button(label="G", key="G", disabled="G" in st.session_state.selected_letters or disable_consonants):
-        check_letter("G")
-
-    if consonant_6.button(label="H", key="H", disabled="H" in st.session_state.selected_letters or disable_consonants):
-        check_letter("H")
-
-    if consonant_7.button(label="J", key="J", disabled="J" in st.session_state.selected_letters or disable_consonants):
-        check_letter("J")
-
-    if consonant_1.button(label="K", key="K", disabled="K" in st.session_state.selected_letters or disable_consonants):
-        check_letter("K")
-
-    if consonant_2.button(label="L", key="L", disabled="L" in st.session_state.selected_letters or disable_consonants):
-        check_letter("L")
-
-    if consonant_3.button(label="M", key="M", disabled="M" in st.session_state.selected_letters or disable_consonants):
-        check_letter("M")
-
-    if consonant_4.button(label="N", key="N", disabled="N" in st.session_state.selected_letters or disable_consonants):
-        check_letter("N")
-
-    if consonant_5.button(label="P", key="P", disabled="P" in st.session_state.selected_letters or disable_consonants):
-        check_letter("P")
-
-    if consonant_6.button(label="Q", key="Q", disabled="Q" in st.session_state.selected_letters or disable_consonants):
-        check_letter("Q")
-
-    if consonant_7.button(label="R", key="R", disabled="R" in st.session_state.selected_letters or disable_consonants):
-        check_letter("R")
-
-    if consonant_1.button(label="S", key="S", disabled="S" in st.session_state.selected_letters or disable_consonants):
-        check_letter("S")
-
-    if consonant_2.button(label="T", key="T", disabled="T" in st.session_state.selected_letters or disable_consonants):
-        check_letter("T")
-
-    if consonant_3.button(label="V", key="V", disabled="V" in st.session_state.selected_letters or disable_consonants):
-        check_letter("V")
-
-    if consonant_4.button(label="W", key="W", disabled="W" in st.session_state.selected_letters or disable_consonants):
-        check_letter("W")
-
-    if consonant_5.button(label="X", key="X", disabled="X" in st.session_state.selected_letters or disable_consonants):
-        check_letter("X")
-
-    if consonant_6.button(label="Y", key="Y", disabled="Y" in st.session_state.selected_letters or disable_consonants):
-        check_letter("Y")
-
-    if consonant_7.button(label="Z", key="Z", disabled="Z" in st.session_state.selected_letters or disable_consonants):
-        check_letter("Z")
-
-    # Display the vowel buttons
-    st.write("Vowels")
-
-    vowel_1, vowel_2, vowel_3, vowel_4, vowel_5, vowel_6, vowel_7 = st.columns(7)
-
-    disable_vowels = not st.session_state.has_enough_month_to_buy_vowels or st.session_state.puzzle_solved
-
-    if vowel_1.button(label="A", key="A", disabled="A" in st.session_state.selected_letters or disable_vowels):
+    if col_1.button(label="A", key="A", disabled="A" in st.session_state.selected_letters or disable_vowels):
         check_letter("A")
 
-    if vowel_2.button(label="E", key="E", disabled="E" in st.session_state.selected_letters or disable_vowels):
+    if col_2.button(label="B", key="B", disabled="B" in st.session_state.selected_letters or disable_consonants):
+        check_letter("B")
+
+    if col_3.button(label="C", key="C", disabled="C" in st.session_state.selected_letters or disable_consonants):
+        check_letter("C")
+
+    if col_4.button(label="D", key="D", disabled="D" in st.session_state.selected_letters or disable_consonants):
+        check_letter("D")
+
+    if col_5.button(label="E", key="E", disabled="E" in st.session_state.selected_letters or disable_vowels):
         check_letter("E")
 
-    if vowel_3.button(label="I", key="I", disabled="I" in st.session_state.selected_letters or disable_vowels):
+    if col_6.button(label="F", key="F", disabled="F" in st.session_state.selected_letters or disable_consonants):
+        check_letter("F")
+
+    if col_7.button(label="G", key="G", disabled="G" in st.session_state.selected_letters or disable_consonants):
+        check_letter("G")
+
+    if col_8.button(label="H", key="H", disabled="H" in st.session_state.selected_letters or disable_consonants):
+        check_letter("H")
+
+    if col_9.button(label="I", key="I", disabled="I" in st.session_state.selected_letters or disable_vowels):
         check_letter("I")
 
-    if vowel_4.button(label="O", key="O", disabled="O" in st.session_state.selected_letters or disable_vowels):
+    if col_10.button(label="J", key="J", disabled="J" in st.session_state.selected_letters or disable_consonants):
+        check_letter("J")
+
+    if col_1.button(label="K", key="K", disabled="K" in st.session_state.selected_letters or disable_consonants):
+        check_letter("K")
+
+    if col_2.button(label="L", key="L", disabled="L" in st.session_state.selected_letters or disable_consonants):
+        check_letter("L")
+
+    if col_3.button(label="M", key="M", disabled="M" in st.session_state.selected_letters or disable_consonants):
+        check_letter("M")
+
+    if col_4.button(label="N", key="N", disabled="N" in st.session_state.selected_letters or disable_consonants):
+        check_letter("N")
+
+    if col_5.button(label="O", key="O", disabled="O" in st.session_state.selected_letters or disable_vowels):
         check_letter("O")
 
-    if vowel_5.button(label="U", key="U", disabled="U" in st.session_state.selected_letters or disable_vowels):
+    if col_6.button(label="P", key="P", disabled="P" in st.session_state.selected_letters or disable_consonants):
+        check_letter("P")
+
+    if col_7.button(label="Q", key="Q", disabled="Q" in st.session_state.selected_letters or disable_consonants):
+        check_letter("Q")
+
+    if col_8.button(label="R", key="R", disabled="R" in st.session_state.selected_letters or disable_consonants):
+        check_letter("R")
+
+    if col_9.button(label="S", key="S", disabled="S" in st.session_state.selected_letters or disable_consonants):
+        check_letter("S")
+
+    if col_10.button(label="T", key="T", disabled="T" in st.session_state.selected_letters or disable_consonants):
+        check_letter("T")
+
+    if col_1.button(label="U", key="U", disabled="U" in st.session_state.selected_letters or disable_vowels):
         check_letter("U")
+
+    if col_2.button(label="V", key="V", disabled="V" in st.session_state.selected_letters or disable_consonants):
+        check_letter("V")
+
+    if col_3.button(label="W", key="W", disabled="W" in st.session_state.selected_letters or disable_consonants):
+        check_letter("W")
+
+    if col_4.button(label="X", key="X", disabled="X" in st.session_state.selected_letters or disable_consonants):
+        check_letter("X")
+
+    if col_5.button(label="Y", key="Y", disabled="Y" in st.session_state.selected_letters or disable_consonants):
+        check_letter("Y")
+
+    if col_6.button(label="Z", key="Z", disabled="Z" in st.session_state.selected_letters or disable_consonants):
+        check_letter("Z")
 
     # Generate the puzzle board
     puzzle_lines = generate_puzzle_board(puzzle, round)
