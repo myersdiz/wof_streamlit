@@ -41,6 +41,14 @@ def setPuzzleSolved(PuzzleSolved: bool) -> None:
     st.session_state.PuzzleSolved = PuzzleSolved
 
 
+def resetGame() -> None:
+    getRandomPuzzle.clear()
+
+    # Clear the session state keys and values
+    for key in st.session_state.keys():
+        del st.session_state[key]
+
+
 @st.cache_data
 def loadAudioFiles() -> tuple[str, str, str, str]:
     with open("assets/audio/buzzer.mp3", "rb") as f:
@@ -70,6 +78,7 @@ def autoplay_audio(audio_file) -> None:
         <source src="data:audio/mp3;base64,{audio_file}" type="audio/mp3">
         </audio>
         """
+
     st.components.v1.html(audio_html, width=0, height=0, scrolling=False)
 
 
@@ -175,8 +184,11 @@ if __name__ == "__main__":
 
     # Create a list of puzzle file names starting with season_1.json and ending with season_41.json
     puzzle_files = ["season_" + str(i) + ".json" for i in range(1, 42)]
+    puzzle_files.remove("season_7.json")
+    puzzle_files.remove("season_12.json")
+    puzzle_files.remove("season_41.json")
 
-    puzzle_file = st.sidebar.selectbox("Select Season", puzzle_files)
+    puzzle_file = st.sidebar.selectbox(label="Select Season", options=puzzle_files, on_change=resetGame)
 
     # Display the title
     st.title("Glücksrad")
@@ -188,7 +200,66 @@ if __name__ == "__main__":
     image_container = st.container()
 
     # Create a container to hold the host messages
-    host_message_container = st.container()
+    puzzle_message_container = st.container()
+
+    if "CheckLetter" not in st.session_state:
+        setCheckLetter(False)
+
+    if "ContestantScore" not in st.session_state:
+        addAmountToContestantScore(0)
+
+    solve_puzzle = st.chat_input("I'd like to solve the puzzle...", key="solve_puzzle")
+
+    if solve_puzzle:
+        if solve_puzzle.lower() == puzzle.lower():
+            for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+                if letter not in st.session_state.selected_letters:
+                    st.session_state.selected_letters.append(letter)
+            st.balloons()
+            host_message = "Congratulations!  You solved the puzzle!"
+            puzzle_message_container.success(host_message)
+            autoplay_audio(solved_puzzle_b64)
+            setPuzzleSolved(True)
+        else:
+            host_message = "Sorry, that is not the correct answer."
+            puzzle_message_container.error(host_message)
+            autoplay_audio(buzzer_b64)
+
+    if st.session_state.CheckLetter:
+        setCheckLetter(False)
+
+        selected_letter = st.session_state.selected_letter
+
+        # Check if the selected letter is in the puzzle
+        if selected_letter in puzzle:
+            # Check if the puzzle has been solved
+            if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
+                st.balloons()
+                host_message = "Congratulations!  You solved the puzzle!"
+                puzzle_message_container.success(host_message)
+                autoplay_audio(solved_puzzle_b64)
+                setPuzzleSolved(True)
+            else:
+                host_message = "Correct!  There are " + str(puzzle.count(selected_letter)) + " " + selected_letter + "'s in the puzzle."
+                puzzle_message_container.success(host_message)
+                if selected_letter in ["A", "E", "I", "O", "U"]:
+                    addAmountToContestantScore(-250)
+                for i in range(puzzle.count(selected_letter)):
+                    if selected_letter not in ["A", "E", "I", "O", "U"]:
+                        addAmountToContestantScore(250)
+                    autoplay_audio(ding_b64)
+                    # time.sleep(1.50)
+                # st.toast(host_message)
+                # st.rerun()
+        elif selected_letter.isalpha() and selected_letter not in puzzle:
+            if selected_letter in ["A", "E", "I", "O", "U"]:
+                addAmountToContestantScore(-250)
+            host_message = "Sorry, there are no " + selected_letter + "'s in the puzzle."
+            puzzle_message_container.error(host_message)
+            autoplay_audio(buzzer_b64)
+            # st.toast(host_message)
+
+    st.sidebar.write("Contestant Score: $" + str(st.session_state.ContestantScore))
 
     # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
     if "selected_letters" not in st.session_state:
@@ -205,39 +276,30 @@ if __name__ == "__main__":
     else:
         setHasEnoughMoneyToBuyVowel()
 
-    if st.session_state.MustSpinWheel:
-        host_message_container.warning("You must spin the wheel before selecting a letter.")
-    else:
-        host_message_container.success("You may now select a letter.")
-
+    # Display the spin wheel button
     if st.button("Spin Wheel", key="spin_wheel"):
         setMustSpinWheel(False)
 
+    # Display the new puzzle button
     if st.sidebar.button("New Puzzle", key="new_puzzle"):
-        getRandomPuzzle.clear()
-
-        for key in st.session_state.keys():
-            del st.session_state[key]
-
+        resetGame()
         st.rerun()
 
-#    st.write(
-#        """<style>
-#            [data-testid="column"] {
-#                width: calc(14% - 1rem) !important;
-#                flex: 1 1 calc(14% - 1rem) !important;
-#                min-width: calc(14% - 1rem) !important;
-#            }
-#            </style>""",
-#        unsafe_allow_html=True,
-#    )
-
-    consonants = st.container()
+    st.write(
+        """<style>
+            [data-testid="column"] {
+                width: calc(14% - 1rem) !important;
+                flex: 1 1 calc(14% - 1rem) !important;
+                min-width: calc(14% - 1rem) !important;
+            }
+            </style>""",
+        unsafe_allow_html=True,
+    )
 
     # Display the consontant buttons
-    consonants.write("Consonants")
+    st.write("Consonants")
 
-    consonant_1, consonant_2, consonant_3, consonant_4, consonant_5, consonant_6, consonant_7 = consonants.columns(7)
+    consonant_1, consonant_2, consonant_3, consonant_4, consonant_5, consonant_6, consonant_7 = st.columns(7)
 
     if consonant_1.button(
         "B",
@@ -386,12 +448,10 @@ if __name__ == "__main__":
     ):
         checkLetter("Z")
 
-    vowels = st.container()
-
     # Display the consontant buttons
-    vowels.write("Vowels")
+    st.write("Vowels")
 
-    vowel_1, vowel_2, vowel_3, vowel_4, vowel_5, vowel_6, vowel_7 = vowels.columns(7)
+    vowel_1, vowel_2, vowel_3, vowel_4, vowel_5, vowel_6, vowel_7 = st.columns(7)
 
     if vowel_1.button(
         "A",
@@ -445,39 +505,3 @@ if __name__ == "__main__":
         + category.replace("&", "%26")
         + """&"""
     )
-
-    if st.session_state.CheckLetter:
-        setCheckLetter(False)
-
-        selected_letter = st.session_state.selected_letter
-
-        # Check if the selected letter is in the puzzle
-        if selected_letter in puzzle:
-            # Check if the puzzle has been solved
-            if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
-                st.balloons()
-                host_message = "Congratulations!  You solved the puzzle!"
-                host_message_container.success(host_message)
-                autoplay_audio(solved_puzzle_b64)
-                setPuzzleSolved(True)
-            else:
-                host_message = "Correct!  There are " + str(puzzle.count(selected_letter)) + " " + selected_letter + "'s in the puzzle."
-                host_message_container.success(host_message)
-                if selected_letter in ["A", "E", "I", "O", "U"]:
-                    addAmountToContestantScore(-250)
-                for i in range(puzzle.count(selected_letter)):
-                    if selected_letter not in ["A", "E", "I", "O", "U"]:
-                        addAmountToContestantScore(250)
-                    autoplay_audio(ding_b64)
-                    time.sleep(1.50)
-                # st.toast(host_message)
-                # st.rerun()
-        elif selected_letter.isalpha() and selected_letter not in puzzle:
-            if selected_letter in ["A", "E", "I", "O", "U"]:
-                addAmountToContestantScore(-250)
-            host_message = "Sorry, there are no " + selected_letter + "'s in the puzzle."
-            host_message_container.error(host_message)
-            autoplay_audio(buzzer_b64)
-            # st.toast(host_message)
-
-    st.sidebar.write("Contestant Score: $" + str(st.session_state.ContestantScore))
