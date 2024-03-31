@@ -46,18 +46,20 @@ def set_no_more_consonants() -> None:
     if "no_more_consonants" not in st.session_state:
         st.session_state.no_more_consonants = False
 
-    if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("AEIOU")) == 0:
-        st.session_state.no_more_consonants = True
-        st.session_state.no_more_consonants_warning = True
+    if not st.session_state.no_more_consonants:
+        if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("AEIOU")) == 0:
+            st.session_state.no_more_consonants = True
+            st.session_state.no_more_consonants_warning = True
 
 
 def set_no_more_vowels() -> None:
     if "no_more_vowels" not in st.session_state:
         st.session_state.no_more_vowels = False
 
-    if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("BCDFGHJKLMNPQRSTVWXYZ")) == 0:
-        st.session_state.no_more_vowels = True
-        st.session_state.no_more_vowels_warning = True
+    if not st.session_state.no_more_vowels:
+        if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("BCDFGHJKLMNPQRSTVWXYZ")) == 0:
+            st.session_state.no_more_vowels = True
+            st.session_state.no_more_vowels_warning = True
 
 
 def set_puzzle_solved(puzzle_solved: bool) -> None:
@@ -96,16 +98,26 @@ def load_audio_files() -> tuple[str, str, str, str, str]:
         data = f.read()
         new_puzzle_b64 = base64.b64encode(data).decode()
 
+    with open("assets/audio/no_more_consonants.mp3", "rb") as f:
+        data = f.read()
+        no_more_consonants_b64 = base64.b64encode(data).decode()
+
+    with open("assets/audio/no_more_vowels.mp3", "rb") as f:
+        data = f.read()
+        no_more_vowels_b64 = base64.b64encode(data).decode()
+
     with open("assets/audio/solved_puzzle.mp3", "rb") as f:
         data = f.read()
         solved_puzzle_b64 = base64.b64encode(data).decode()
 
-    return bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64
+    return bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, no_more_consonants_b64, no_more_vowels_b64, solved_puzzle_b64
 
 
 def set_audio_queue(audio_file: str, audio_play_count: int) -> None:
     if "audio_queue" not in st.session_state:
         st.session_state.audio_queue = []
+
+    st.session_state.audio_queue.clear()
 
     st.session_state.audio_queue.append(audio_file)
     st.session_state.audio_queue.append(audio_play_count)
@@ -120,7 +132,7 @@ def play_audio(audio_file: str) -> None:
     st.components.v1.html(
         f"""
         <audio class="{str(random.random())}" autoplay="true">
-        <source src="data:audio/mp3;base64,{audio_file}" type="audio/mp3">
+        <source src="data:audio/mpeg;base64,{audio_file}" type="audio/mpeg">
         </audio>
         """,
         width=0,
@@ -258,7 +270,7 @@ def check_letter(letter: str) -> None:
 
 if __name__ == "__main__":
     # Load the audio files
-    bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64 = load_audio_files()
+    bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, no_more_consonants_b64, no_more_vowels_b64, solved_puzzle_b64 = load_audio_files()
 
     # Display the title in the sidebar
     st.sidebar.title("Wheel's Fortune")
@@ -357,7 +369,7 @@ if __name__ == "__main__":
         set_puzzle_solved(False)
         set_audio_queue(new_puzzle_b64, 1)
 
-        puzzle_message_container.warning("Open the sidebar to change puzzles from a different season and see your score.")
+        puzzle_message_container.warning("Open the sidebar to see puzzles from a different season and also see your score.")
 
         # If round is "Bonus Round" then add R, S, T, L, N, and E to the selected letters
         if round == "Bonus Round":
@@ -370,10 +382,12 @@ if __name__ == "__main__":
     if st.session_state.no_more_consonants and not st.session_state.puzzle_solved and st.session_state.no_more_consonants_warning:
         puzzle_message_container.warning("No more consonants left in the puzzle.")
         st.session_state.no_more_consonants_warning = False
+        set_audio_queue(no_more_consonants_b64, 1)
 
     if st.session_state.no_more_vowels and not st.session_state.puzzle_solved and st.session_state.no_more_vowels_warning:
         puzzle_message_container.warning("No more vowels left in the puzzle.")
         st.session_state.no_more_vowels_warning = False
+        set_audio_queue(no_more_vowels_b64, 1)
 
     # Display the spin wheel button
     if st.button(label="Spin Wheel", key="spin_wheel", disabled=st.session_state.puzzle_solved):
@@ -541,10 +555,10 @@ if __name__ == "__main__":
         puzzle_message_container.success("Open the sidebar and click 'New Puzzle' to play again!")
 
     st.sidebar.caption(
-        "This Streamlit application is dedicated to the popular television game show Wheel of Fortune.  " +
-        "It is not affiliated with Wheel of Fortune, Sony Pictures, or any of its affiliates.  " +
-        "No challenge to ownership is implied, and all marks, logos, images, and other materials used " +
-        "wherein remain property of their respective owners."
+        "This Streamlit application is dedicated to the popular television game show Wheel of Fortune.  "
+        + "It is not affiliated with Wheel of Fortune, Sony Pictures, or any of its affiliates.  "
+        + "No challenge to ownership is implied, and all marks, logos, images, and other materials used "
+        + "wherein remain property of their respective owners."
     )
 
     if "audio_queue" in st.session_state:
