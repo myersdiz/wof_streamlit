@@ -10,10 +10,11 @@ def set_check_letter(check_letter: bool) -> None:
     st.session_state.check_letter = check_letter
 
 
-def add_amount_to_contenstant_score(add_prize_amount: int) -> None:
-    if "contestant_score" not in st.session_state:
-        st.session_state.contestant_score = add_prize_amount
+def zero_contestant_score() -> None:
+    st.session_state.contestant_score = 0
 
+
+def add_amount_to_contenstant_score(add_prize_amount: int) -> None:
     st.session_state.contestant_score += add_prize_amount
 
 
@@ -24,14 +25,37 @@ def set_must_spin_wheel(must_spin_wheel: bool) -> None:
     st.session_state.must_spin_wheel = must_spin_wheel
 
 
+def set_can_buy_vowel(can_buy_vowel: bool) -> None:
+    if "can_buy_vowel" not in st.session_state:
+        st.session_state.can_buy_vowel = False
+
+    st.session_state.can_buy_vowel = can_buy_vowel
+
+
 def set_has_enough_money_to_buy_vowel() -> None:
-    if "has_enough_month_to_buy_vowels" not in st.session_state:
-        st.session_state.has_enough_month_to_buy_vowels = False
+    if "has_enough_money_to_buy_vowels" not in st.session_state:
+        st.session_state.has_enough_money_to_buy_vowels = False
 
     if st.session_state.contestant_score >= 250:
-        st.session_state.has_enough_month_to_buy_vowels = True
+        st.session_state.has_enough_money_to_buy_vowels = True
     else:
-        st.session_state.has_enough_month_to_buy_vowels = False
+        st.session_state.has_enough_money_to_buy_vowels = False
+
+
+def set_no_more_consonants() -> None:
+    if "no_more_consonants" not in st.session_state:
+        st.session_state.no_more_consonants = False
+
+    if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("AEIOU")) == 0:
+        st.session_state.no_more_consonants = True
+
+
+def set_no_more_vowels() -> None:
+    if "no_more_vowels" not in st.session_state:
+        st.session_state.no_more_vowels = False
+
+    if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("BCDFGHJKLMNPQRSTVWXYZ")) == 0:
+        st.session_state.no_more_vowels = True
 
 
 def set_puzzle_solved(puzzle_solved: bool) -> None:
@@ -44,7 +68,6 @@ def set_puzzle_solved(puzzle_solved: bool) -> None:
 def reset_game() -> None:
     get_random_puzzle.clear()
 
-    # Clear the session state keys and values
     for key in st.session_state.keys():
         del st.session_state[key]
 
@@ -74,16 +97,30 @@ def load_audio_files() -> tuple[str, str, str, str, str]:
     return bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64
 
 
-def play_audio(audio_file: str) -> None:
-    random_class = str(random.random())
+def set_audio_queue(audio_file: str, audio_play_count: int) -> None:
+    if "audio_queue" not in st.session_state:
+        st.session_state.audio_queue = []
 
-    html_audio_tag = f"""
-        <audio class="{random_class}" autoplay="true">
+    st.session_state.audio_queue.append(audio_file)
+    st.session_state.audio_queue.append(audio_play_count)
+
+
+def clear_audio_queue() -> None:
+    if "audio_queue" in st.session_state:
+        del st.session_state.audio_queue
+
+
+def play_audio(audio_file: str) -> None:
+    st.components.v1.html(
+        f"""
+        <audio class="{str(random.random())}" autoplay="true">
         <source src="data:audio/mp3;base64,{audio_file}" type="audio/mp3">
         </audio>
-        """
-
-    st.components.v1.html(html_audio_tag, width=0, height=0, scrolling=False)
+        """,
+        width=0,
+        height=0,
+        scrolling=False,
+    )
 
 
 @st.cache_data
@@ -94,7 +131,7 @@ def load_wheel_prizes() -> dict[str, str]:
     return wheel_prizes
 
 
-def get_wheel_prize(wheel_prizes) -> tuple[str, str]:
+def get_random_wheel_prize(wheel_prizes) -> tuple[str, str]:
     wheel_prize = random.choice(list(wheel_prizes.items()))
 
     return wheel_prize
@@ -136,13 +173,8 @@ def get_random_puzzle(puzzle_file: str) -> tuple[str, str, set]:
 
 
 def generate_puzzle_board(puzzle: str) -> dict:
-    if "selected_letters" in st.session_state:
-        selected_letters = st.session_state.selected_letters
-    else:
-        selected_letters = []
-
     # Replace letters with underscores
-    puzzle_with_underscores = "".join(["_" if c.isalpha() and c not in selected_letters else c for c in puzzle])
+    puzzle_with_underscores = "".join(["_" if c.isalpha() and c not in st.session_state.selected_letters else c for c in puzzle])
 
     # Count words in puzzle
     puzzle_words = puzzle_with_underscores.split(" ")
@@ -213,14 +245,14 @@ if __name__ == "__main__":
     # Load the audio files
     bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64 = load_audio_files()
 
-    # Create a list of puzzle file names starting with season_1.json and ending with season_41.json
+    # Display the title in the sidebar
+    st.sidebar.title("Glücksrad")
+
+    # Create a list of season names starting with Season 1 ending with Season 41
     puzzle_files = ["Season " + str(i) for i in range(1, 42)]
     puzzle_files.remove("Season 7")  # Season 7 is missing
     puzzle_files.remove("Season 12")  # Season 12 is missing
     puzzle_files.remove("Season 41")  # Season 41 is corrupt
-
-    # Display the title
-    st.sidebar.title("Glücksrad")
 
     # Display the season selection dropdown
     puzzle_file = st.sidebar.selectbox(label="Select a season", options=puzzle_files, on_change=reset_game)
@@ -228,69 +260,87 @@ if __name__ == "__main__":
     # Get a random puzzle
     category, puzzle, puzzle_letter_set, round = get_random_puzzle(puzzle_file)
 
+    st.sidebar.write("Puzzle from " + round)
+
     # Load the wheel prizes
     wheel_prizes = load_wheel_prizes()
 
-    # Create a container to hold the Wheel of Fortune puzzle board image
+    # Create a container to hold the Wheel of Fortune puzzle board image (image added later in code)
     image_container = st.container()
 
     # Create a container to hold the host messages
     puzzle_message_container = st.container()
 
-    if "check_letter" not in st.session_state:
-        set_check_letter(False)
-
-    if "contestant_score" not in st.session_state:
-        add_amount_to_contenstant_score(0)
-
     solve_puzzle = st.chat_input("I'd like to solve the puzzle...", key="solve_puzzle")
 
     if solve_puzzle:
         if solve_puzzle.lower() == puzzle.lower():
+            # Add all the remaining letters to the selected letters
             for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
                 if letter not in st.session_state.selected_letters:
                     st.session_state.selected_letters.append(letter)
-            st.balloons()
+
             puzzle_message_container.success("Congratulations!  You solved the puzzle!")
-            play_audio(solved_puzzle_b64)
+            set_audio_queue(solved_puzzle_b64, 1)
             set_puzzle_solved(True)
+            st.balloons()
         else:
             puzzle_message_container.error("Sorry, that is not the correct answer.")
-            play_audio(buzzer_b64)
+            set_audio_queue(buzzer_b64, 1)
+
+    if "check_letter" not in st.session_state:
+        set_check_letter(False)
 
     if st.session_state.check_letter:
         set_check_letter(False)
 
         selected_letter = st.session_state.selected_letter
 
+        set_no_more_consonants()
+        set_no_more_vowels()
+
+        # Check if the selected letter is a vowel, subtract $250 from the contestant score
+        if selected_letter in ["A", "E", "I", "O", "U"]:
+            add_amount_to_contenstant_score(-250)
+
         # Check if the selected letter is in the puzzle
         if selected_letter in puzzle:
             # Check if the puzzle has been solved
             if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
-                st.balloons()
                 puzzle_message_container.success("Congratulations!  You solved the puzzle!")
-                play_audio(solved_puzzle_b64)
+                set_audio_queue(solved_puzzle_b64, 1)
                 set_puzzle_solved(True)
+                st.balloons()
             else:
                 puzzle_message_container.success("Correct!  There are " + str(puzzle.count(selected_letter)) + " " + selected_letter + "'s in the puzzle.")
-                if selected_letter in ["A", "E", "I", "O", "U"]:
-                    add_amount_to_contenstant_score(-250)
-                for i in range(puzzle.count(selected_letter)):
-                    if selected_letter not in ["A", "E", "I", "O", "U"]:
-                        add_amount_to_contenstant_score(st.session_state.prize_amount)
-                    play_audio(ding_b64)
-                    # time.sleep(1.50)
-        elif selected_letter.isalpha() and selected_letter not in puzzle:
-            if selected_letter in ["A", "E", "I", "O", "U"]:
-                add_amount_to_contenstant_score(-250)
-            puzzle_message_container.error("Sorry, there are no " + selected_letter + "'s in the puzzle.")
-            play_audio(buzzer_b64)
 
-    st.sidebar.write("Puzzle from " + round)
+                if selected_letter not in ["A", "E", "I", "O", "U"]:
+                    set_can_buy_vowel(True)
+
+                    for i in range(puzzle.count(selected_letter)):
+                        add_amount_to_contenstant_score(st.session_state.prize_amount)
+
+                    set_has_enough_money_to_buy_vowel()
+
+                set_audio_queue(ding_b64, puzzle.count(selected_letter))
+        elif selected_letter.isalpha() and selected_letter not in puzzle:
+            puzzle_message_container.error("Sorry, there are no " + selected_letter + "'s in the puzzle.")
+            set_can_buy_vowel(False)
+            set_audio_queue(buzzer_b64, 1)
 
     # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
     if "selected_letters" not in st.session_state:
         st.session_state.selected_letters = []
+
+        set_check_letter(False)
+        zero_contestant_score()
+        set_must_spin_wheel(True)
+        set_no_more_consonants()
+        set_can_buy_vowel(False)
+        set_has_enough_money_to_buy_vowel()
+        set_no_more_vowels()
+        set_puzzle_solved(False)
+        set_audio_queue(new_puzzle_b64, 1)
 
         # If round is "Bonus Round" then add R, S, T, L, N, and E to the selected letters
         if round == "Bonus Round":
@@ -300,36 +350,38 @@ if __name__ == "__main__":
 
             puzzle_message_container.warning("The letters R, S, T, L, N, and E are already filled in for you.")
 
-        set_check_letter(False)
-        add_amount_to_contenstant_score(0)
-        set_must_spin_wheel(True)
-        set_has_enough_money_to_buy_vowel()
-        set_puzzle_solved(False)
-
-        # Play the new puzzle sound
-        play_audio(new_puzzle_b64)
-    else:
-        set_has_enough_money_to_buy_vowel()
+    if st.session_state.no_more_consonants and not st.session_state.puzzle_solved:
+        puzzle_message_container.warning("No more consonants left in the puzzle.")
+    elif st.session_state.no_more_vowels and not st.session_state.puzzle_solved:
+        puzzle_message_container.warning("No more vowels left in the puzzle.")
 
     # Display the spin wheel button
     if st.button(label="Spin Wheel", key="spin_wheel", disabled=st.session_state.puzzle_solved):
         set_must_spin_wheel(False)
 
-        wheel_prize = get_wheel_prize(wheel_prizes)
+        wheel_prize = get_random_wheel_prize(wheel_prizes)
 
         st.session_state.prize_name = wheel_prize[1]["prize_name"]
         st.session_state.prize_amount = wheel_prize[1]["prize_amount"]
 
         if st.session_state.prize_name == "Bankrupt":
+            zero_contestant_score()
             set_must_spin_wheel(True)
-            add_amount_to_contenstant_score(-st.session_state.contestant_score)
-            play_audio(bankrupt_b64)
+            set_can_buy_vowel(False)
+            set_audio_queue(bankrupt_b64, 1)
             puzzle_message_container.error("Sorry, you spun Bankrupt.  You lose all your money.")
+        elif st.session_state.prize_name == "Lose a Turn":
+            set_must_spin_wheel(True)
+            set_can_buy_vowel(False)
+            puzzle_message_container.error("Sorry, you spun Lose a Turn.  You lose your turn.")
         else:
+            set_must_spin_wheel(False)
             puzzle_message_container.success("You spun " + st.session_state.prize_name)
 
     # Display the contestant score
     st.sidebar.write("Contestant Score: $" + str(st.session_state.contestant_score))
+
+    play_audio_checkbox = st.sidebar.checkbox("Play Audio", value=True)
 
     # Display the new puzzle button
     if st.sidebar.button(label="New Puzzle", key="new_puzzle"):
@@ -354,13 +406,19 @@ if __name__ == "__main__":
     # Disable consonants if:
     # 1. The contestant must spin the wheel
     # 2. The puzzle has been solved
-    disable_consonants = st.session_state.must_spin_wheel or st.session_state.puzzle_solved
+    # 3. The puzzle does not contain any more consonants
+    disable_consonants = st.session_state.must_spin_wheel or st.session_state.puzzle_solved or st.session_state.no_more_consonants
 
     # Disable vowels if:
     # 1. The contestant does not have enough money to buy a vowel
-    # 2. The puzzle has been solved
-    # 3. The puzzle does not contain any more vowels
-    disable_vowels = not st.session_state.has_enough_month_to_buy_vowels or st.session_state.puzzle_solved or not puzzle_letter_set.intersection(set("AEIOU"))
+    # 2. The puzzle does not contain any more vowels
+    # 3. The puzzle has been solved
+    disable_vowels = (
+        not st.session_state.can_buy_vowel
+        or st.session_state.no_more_vowels
+        or not st.session_state.has_enough_money_to_buy_vowels
+        or st.session_state.puzzle_solved
+    )
 
     if col_1.button(label="A", key="A", disabled="A" in st.session_state.selected_letters or disable_vowels):
         check_letter("A")
@@ -457,3 +515,13 @@ if __name__ == "__main__":
         + category.replace("&", "%26")
         + """&"""
     )
+
+    if "audio_queue" in st.session_state:
+        if play_audio_checkbox:
+            for i in range(st.session_state.audio_queue[1]):
+                play_audio(st.session_state.audio_queue[0])
+
+                if st.session_state.audio_queue[1] > 1:
+                    time.sleep(1.5)
+
+        clear_audio_queue()
