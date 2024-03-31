@@ -48,6 +48,7 @@ def set_no_more_consonants() -> None:
 
     if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("AEIOU")) == 0:
         st.session_state.no_more_consonants = True
+        st.session_state.no_more_consonants_warning = True
 
 
 def set_no_more_vowels() -> None:
@@ -56,6 +57,7 @@ def set_no_more_vowels() -> None:
 
     if len(puzzle_letter_set - set(st.session_state.selected_letters) - set("BCDFGHJKLMNPQRSTVWXYZ")) == 0:
         st.session_state.no_more_vowels = True
+        st.session_state.no_more_vowels_warning = True
 
 
 def set_puzzle_solved(puzzle_solved: bool) -> None:
@@ -164,7 +166,7 @@ def get_random_puzzle(puzzle_file: str) -> tuple[str, str, set]:
     puzzle = puzzle.replace("?", "")
 
     # Replace double spaces with single spaces in the puzzle
-    puzzle = puzzle.replace("  ", " ")    
+    puzzle = puzzle.replace("  ", " ")
 
     round = df_puzzles["ROUND"].values[0]
 
@@ -259,7 +261,7 @@ if __name__ == "__main__":
     bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, solved_puzzle_b64 = load_audio_files()
 
     # Display the title in the sidebar
-    st.sidebar.title("Glücksrad")
+    st.sidebar.title("Wheel's Fortune")
 
     # Create a list of season names starting with Season 1 ending with Season 41
     puzzle_files = ["Season " + str(i) for i in range(1, 42)]
@@ -333,7 +335,7 @@ if __name__ == "__main__":
                     for i in range(puzzle.count(selected_letter)):
                         add_to_contenstant_score(st.session_state.prize_amount)
 
-                    set_has_enough_money_to_buy_vowel()
+                set_has_enough_money_to_buy_vowel()
 
                 set_audio_queue(ding_b64, puzzle.count(selected_letter))
         elif selected_letter.isalpha() and selected_letter not in puzzle:
@@ -355,6 +357,8 @@ if __name__ == "__main__":
         set_puzzle_solved(False)
         set_audio_queue(new_puzzle_b64, 1)
 
+        puzzle_message_container.warning("Open the sidebar to change puzzles from a different season and see your score.")
+
         # If round is "Bonus Round" then add R, S, T, L, N, and E to the selected letters
         if round == "Bonus Round":
             for letter in "RSTLNE":
@@ -363,10 +367,13 @@ if __name__ == "__main__":
 
             puzzle_message_container.warning("The letters R, S, T, L, N, and E are already filled in for you.")
 
-    if st.session_state.no_more_consonants and not st.session_state.puzzle_solved:
+    if st.session_state.no_more_consonants and not st.session_state.puzzle_solved and st.session_state.no_more_consonants_warning:
         puzzle_message_container.warning("No more consonants left in the puzzle.")
-    elif st.session_state.no_more_vowels and not st.session_state.puzzle_solved:
+        st.session_state.no_more_consonants_warning = False
+
+    if st.session_state.no_more_vowels and not st.session_state.puzzle_solved and st.session_state.no_more_vowels_warning:
         puzzle_message_container.warning("No more vowels left in the puzzle.")
+        st.session_state.no_more_vowels_warning = False
 
     # Display the spin wheel button
     if st.button(label="Spin Wheel", key="spin_wheel", disabled=st.session_state.puzzle_solved):
@@ -528,6 +535,16 @@ if __name__ == "__main__":
         + """&cat="""
         + category.replace("&", "%26")
         + """&"""
+    )
+
+    if st.session_state.puzzle_solved:
+        puzzle_message_container.success("Open the sidebar and click 'New Puzzle' to play again!")
+
+    st.sidebar.caption(
+        "This Streamlit application is dedicated to the popular television game show Wheel of Fortune.  " +
+        "It is not affiliated with Wheel of Fortune, Sony Pictures, or any of its affiliates.  " +
+        "No challenge to ownership is implied, and all marks, logos, images, and other materials used " +
+        "wherein remain property of their respective owners."
     )
 
     if "audio_queue" in st.session_state:
