@@ -14,8 +14,8 @@ def zero_contestant_score() -> None:
     st.session_state.contestant_score = 0
 
 
-def add_amount_to_contenstant_score(add_prize_amount: int) -> None:
-    st.session_state.contestant_score += add_prize_amount
+def add_to_contenstant_score(prize_amount: int) -> None:
+    st.session_state.contestant_score += prize_amount
 
 
 def set_must_spin_wheel(must_spin_wheel: bool) -> None:
@@ -61,6 +61,10 @@ def set_no_more_vowels() -> None:
 def set_puzzle_solved(puzzle_solved: bool) -> None:
     if "puzzle_solved" not in st.session_state:
         st.session_state.puzzle_solved = False
+
+    if puzzle_solved:
+        if st.session_state.contestant_score < 1000:
+            st.session_state.contestant_score = 1000
 
     st.session_state.puzzle_solved = puzzle_solved
 
@@ -146,12 +150,21 @@ def get_random_puzzle(puzzle_file: str) -> tuple[str, str, set]:
     # Convert dictionary puzzles to Pandas DataFrame
     df_puzzles = pd.DataFrame(puzzles)
 
-    # Pick one random row from the Pandas DataFrame
     df_puzzles = df_puzzles.sample(n=1)
 
     category = df_puzzles["CATEGORY"].values[0]
 
     puzzle = df_puzzles["PUZZLE"].values[0]
+
+    # Search for parantheses in the puzzle and remove the contents
+    if "(" in puzzle and ")" in puzzle:
+        puzzle = puzzle[: puzzle.index("(")] + puzzle[puzzle.index(")") + 1 :]
+
+    # Replace "?" with "" in the puzzle
+    puzzle = puzzle.replace("?", "")
+
+    # Replace double spaces with single spaces in the puzzle
+    puzzle = puzzle.replace("  ", " ")    
 
     round = df_puzzles["ROUND"].values[0]
 
@@ -301,7 +314,7 @@ if __name__ == "__main__":
 
         # Check if the selected letter is a vowel, subtract $250 from the contestant score
         if selected_letter in ["A", "E", "I", "O", "U"]:
-            add_amount_to_contenstant_score(-250)
+            add_to_contenstant_score(-250)
 
         # Check if the selected letter is in the puzzle
         if selected_letter in puzzle:
@@ -318,7 +331,7 @@ if __name__ == "__main__":
                     set_can_buy_vowel(True)
 
                     for i in range(puzzle.count(selected_letter)):
-                        add_amount_to_contenstant_score(st.session_state.prize_amount)
+                        add_to_contenstant_score(st.session_state.prize_amount)
 
                     set_has_enough_money_to_buy_vowel()
 
@@ -361,22 +374,22 @@ if __name__ == "__main__":
 
         wheel_prize = get_random_wheel_prize(wheel_prizes)
 
-        st.session_state.prize_name = wheel_prize[1]["prize_name"]
         st.session_state.prize_amount = wheel_prize[1]["prize_amount"]
 
-        if st.session_state.prize_name == "Bankrupt":
+        if wheel_prize[1]["prize_name"] == "Bankrupt":
             zero_contestant_score()
             set_must_spin_wheel(True)
             set_can_buy_vowel(False)
             set_audio_queue(bankrupt_b64, 1)
             puzzle_message_container.error("Sorry, you spun Bankrupt.  You lose all your money.")
-        elif st.session_state.prize_name == "Lose a Turn":
+        elif wheel_prize[1]["prize_name"] == "Lose a Turn":
             set_must_spin_wheel(True)
             set_can_buy_vowel(False)
             puzzle_message_container.error("Sorry, you spun Lose a Turn.  You lose your turn.")
         else:
             set_must_spin_wheel(False)
-            puzzle_message_container.success("You spun " + st.session_state.prize_name)
+            set_can_buy_vowel(False)
+            puzzle_message_container.success("You spun " + wheel_prize[1]["prize_name"])
 
     # Display the contestant score
     st.sidebar.write("Contestant Score: $" + str(st.session_state.contestant_score))
@@ -405,14 +418,15 @@ if __name__ == "__main__":
 
     # Disable consonants if:
     # 1. The contestant must spin the wheel
-    # 2. The puzzle has been solved
-    # 3. The puzzle does not contain any more consonants
-    disable_consonants = st.session_state.must_spin_wheel or st.session_state.puzzle_solved or st.session_state.no_more_consonants
+    # 2. The puzzle does not contain any more consonants
+    # 3. The puzzle has been solved
+    disable_consonants = st.session_state.must_spin_wheel or st.session_state.no_more_consonants or st.session_state.puzzle_solved
 
     # Disable vowels if:
-    # 1. The contestant does not have enough money to buy a vowel
-    # 2. The puzzle does not contain any more vowels
-    # 3. The puzzle has been solved
+    # 1. The contestant cannot buy a vowel
+    # 2. The contestant does not have enough money to buy a vowel
+    # 3. The puzzle does not contain any more vowels
+    # 4. The puzzle has been solved
     disable_vowels = (
         not st.session_state.can_buy_vowel
         or st.session_state.no_more_vowels
