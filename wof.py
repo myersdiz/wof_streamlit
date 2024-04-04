@@ -62,9 +62,23 @@ def set_no_more_vowels() -> None:
             st.session_state.no_more_vowels_warning = True
 
 
+def set_disable_consonants(disable_consonants: bool) -> None:
+    if "disable_consonants" not in st.session_state:
+        st.session_state.disable_consonants = disable_consonants
+
+    st.session_state.disable_consonants = disable_consonants
+
+
+def set_disable_vowels(disable_vowels: bool) -> None:
+    if "disable_vowels" not in st.session_state:
+        st.session_state.disable_vowels = disable_vowels
+
+    st.session_state.disable_vowels = disable_vowels
+
+
 def set_puzzle_solved(puzzle_solved: bool) -> None:
     if "puzzle_solved" not in st.session_state:
-        st.session_state.puzzle_solved = False
+        st.session_state.puzzle_solved = puzzle_solved
 
     if puzzle_solved:
         if st.session_state.contestant_score < 1000:
@@ -257,15 +271,24 @@ def generate_puzzle_board(puzzle: str) -> dict:
     return puzzle_lines
 
 
-def check_letter(letter: str) -> None:
-    if letter not in st.session_state.selected_letters:
-        st.session_state.selected_letter = letter
-        st.session_state.selected_letters.append(letter)
+def check_letter(letter: str, round: str) -> None:
+    if round == "Bonus Round":
+        if letter not in st.session_state.bonus_selected_letters:
+            st.session_state.selected_letter = letter
+            st.session_state.bonus_selected_letters.append(letter)
 
-    set_check_letter(True)
-    set_must_spin_wheel(True)
+        set_check_letter(True)
 
-    st.rerun()
+        st.rerun()
+    else:
+        if letter not in st.session_state.selected_letters:
+            st.session_state.selected_letter = letter
+            st.session_state.selected_letters.append(letter)
+
+        set_check_letter(True)
+        set_must_spin_wheel(True)
+
+        st.rerun()
 
 
 if __name__ == "__main__":
@@ -298,129 +321,232 @@ if __name__ == "__main__":
     # Create a container to hold the host messages
     puzzle_message_container = st.container()
 
-    solve_puzzle = st.chat_input("I'd like to solve the puzzle...", key="solve_puzzle")
+    if round != "Bonus Round":
+        solve_puzzle = st.chat_input("I'd like to solve the puzzle...", key="solve_puzzle")
 
-    if solve_puzzle:
-        if solve_puzzle.lower() == puzzle.lower():
-            # Add all the remaining letters to the selected letters
-            for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-                if letter not in st.session_state.selected_letters:
-                    st.session_state.selected_letters.append(letter)
+        if solve_puzzle:
+            if solve_puzzle.lower() == puzzle.lower():
+                # Add all the remaining letters to the selected letters
+                for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+                    if letter not in st.session_state.selected_letters:
+                        st.session_state.selected_letters.append(letter)
 
-            puzzle_message_container.success("Congratulations!  You solved the puzzle!")
-            set_audio_queue(solved_puzzle_b64, 1)
-            set_puzzle_solved(True)
-            st.balloons()
-        else:
-            puzzle_message_container.error("Sorry, that is not the correct answer.")
-            set_audio_queue(buzzer_b64, 1)
-
-    if "check_letter" not in st.session_state:
-        set_check_letter(False)
-
-    if st.session_state.check_letter:
-        set_check_letter(False)
-
-        selected_letter = st.session_state.selected_letter
-
-        set_no_more_consonants()
-        set_no_more_vowels()
-
-        # Check if the selected letter is a vowel, subtract $250 from the contestant score
-        if selected_letter in ["A", "E", "I", "O", "U"]:
-            add_to_contenstant_score(-250)
-
-        # Check if the selected letter is in the puzzle
-        if selected_letter in puzzle:
-            # Check if the puzzle has been solved
-            if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
                 puzzle_message_container.success("Congratulations!  You solved the puzzle!")
                 set_audio_queue(solved_puzzle_b64, 1)
                 set_puzzle_solved(True)
                 st.balloons()
             else:
-                puzzle_message_container.success("Correct!  There are " + str(puzzle.count(selected_letter)) + " " + selected_letter + "'s in the puzzle.")
+                puzzle_message_container.error("Sorry, that is not the correct answer.")
+                set_audio_queue(buzzer_b64, 1)
 
-                if selected_letter not in ["A", "E", "I", "O", "U"]:
-                    set_can_buy_vowel(True)
+        if "check_letter" not in st.session_state:
+            set_check_letter(False)
 
-                    for i in range(puzzle.count(selected_letter)):
-                        add_to_contenstant_score(st.session_state.prize_amount)
+        if st.session_state.check_letter:
+            set_check_letter(False)
 
-                set_has_enough_money_to_buy_vowel()
+            selected_letter = st.session_state.selected_letter
 
-                set_audio_queue(ding_b64, puzzle.count(selected_letter))
-        elif selected_letter.isalpha() and selected_letter not in puzzle:
-            puzzle_message_container.error("Sorry, there are no " + selected_letter + "'s in the puzzle.")
+            set_no_more_consonants()
+            set_no_more_vowels()
+
+            # Check if the selected letter is a vowel, subtract $250 from the contestant score
+            if selected_letter in ["A", "E", "I", "O", "U"]:
+                add_to_contenstant_score(-250)
+
+            # Check if the selected letter is in the puzzle
+            if selected_letter in puzzle:
+                # Check if the puzzle has been solved
+                if puzzle_letter_set.issubset(set(st.session_state.selected_letters)):
+                    puzzle_message_container.success("Congratulations!  You solved the puzzle!")
+                    set_audio_queue(solved_puzzle_b64, 1)
+                    set_puzzle_solved(True)
+                    st.balloons()
+                else:
+                    puzzle_message_container.success("Correct!  There are " + str(puzzle.count(selected_letter)) + " " + selected_letter + "'s in the puzzle.")
+
+                    if selected_letter not in ["A", "E", "I", "O", "U"]:
+                        set_can_buy_vowel(True)
+
+                        for i in range(puzzle.count(selected_letter)):
+                            add_to_contenstant_score(st.session_state.prize_amount)
+
+                    set_has_enough_money_to_buy_vowel()
+
+                    set_audio_queue(ding_b64, puzzle.count(selected_letter))
+            elif selected_letter.isalpha() and selected_letter not in puzzle:
+                puzzle_message_container.error("Sorry, there are no " + selected_letter + "'s in the puzzle.")
+                set_can_buy_vowel(False)
+                set_audio_queue(buzzer_b64, 1)
+
+        # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
+        if "selected_letters" not in st.session_state:
+            st.session_state.selected_letters = []
+            st.session_state.bonus_selected_letters = []
+
+            set_check_letter(False)
+            zero_contestant_score()
+            set_must_spin_wheel(True)
+            set_no_more_consonants()
             set_can_buy_vowel(False)
-            set_audio_queue(buzzer_b64, 1)
+            set_has_enough_money_to_buy_vowel()
+            set_no_more_vowels()
+            set_puzzle_solved(False)
+            set_audio_queue(new_puzzle_b64, 1)
 
-    # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
-    if "selected_letters" not in st.session_state:
-        st.session_state.selected_letters = []
+            puzzle_message_container.warning("Open the sidebar to see puzzles from a different season and also see your score.")
 
-        set_check_letter(False)
-        zero_contestant_score()
-        set_must_spin_wheel(True)
-        set_no_more_consonants()
-        set_can_buy_vowel(False)
-        set_has_enough_money_to_buy_vowel()
-        set_no_more_vowels()
-        set_puzzle_solved(False)
-        set_audio_queue(new_puzzle_b64, 1)
+        if st.session_state.no_more_consonants and not st.session_state.puzzle_solved and st.session_state.no_more_consonants_warning:
+            puzzle_message_container.warning("No more consonants left in the puzzle.")
+            st.session_state.no_more_consonants_warning = False
+            set_audio_queue(no_more_consonants_b64, 1)
 
-        puzzle_message_container.warning("Open the sidebar to see puzzles from a different season and also see your score.")
+        if st.session_state.no_more_vowels and not st.session_state.puzzle_solved and st.session_state.no_more_vowels_warning:
+            puzzle_message_container.warning("No more vowels left in the puzzle.")
+            st.session_state.no_more_vowels_warning = False
+            set_audio_queue(no_more_vowels_b64, 1)
 
-        # If round is "Bonus Round" then add R, S, T, L, N, and E to the selected letters
-        if round == "Bonus Round":
+        # Display the spin wheel button
+        if st.button(label="Spin Wheel", key="spin_wheel", disabled=st.session_state.puzzle_solved):
+            set_must_spin_wheel(False)
+
+            wheel_prize = get_random_wheel_prize(wheel_prizes)
+
+            st.session_state.prize_amount = wheel_prize[1]["prize_amount"]
+
+            if wheel_prize[1]["prize_name"] == "Bankrupt":
+                zero_contestant_score()
+                set_must_spin_wheel(True)
+                set_can_buy_vowel(False)
+                set_audio_queue(bankrupt_b64, 1)
+                puzzle_message_container.error("Sorry, you spun Bankrupt.  You lose all your money.")
+            elif wheel_prize[1]["prize_name"] == "Lose a Turn":
+                set_must_spin_wheel(True)
+                set_can_buy_vowel(False)
+                puzzle_message_container.error("Sorry, you spun Lose a Turn.  You lose your turn.")
+            else:
+                set_must_spin_wheel(False)
+                set_can_buy_vowel(False)
+                puzzle_message_container.success("You spun " + wheel_prize[1]["prize_name"])
+
+        # Display the contestant score
+        st.sidebar.write("Contestant Score: $" + str(st.session_state.contestant_score))
+
+        play_audio_checkbox = st.sidebar.checkbox("Play Audio", value=True)
+
+        # Display the new puzzle button
+        if st.sidebar.button(label="New Puzzle", key="new_puzzle"):
+            reset_game()
+            st.rerun()
+
+        # Disable consonants if:
+        # 1. The contestant must spin the wheel
+        # 2. The puzzle does not contain any more consonants
+        # 3. The puzzle has been solved
+        st.session_state.disable_consonants = st.session_state.must_spin_wheel or st.session_state.no_more_consonants or st.session_state.puzzle_solved
+
+        # Disable vowels if:
+        # 1. The contestant cannot buy a vowel
+        # 2. The contestant does not have enough money to buy a vowel
+        # 3. The puzzle does not contain any more vowels
+        # 4. The puzzle has been solved
+        st.session_state.disable_vowels = (
+            not st.session_state.can_buy_vowel
+            or st.session_state.no_more_vowels
+            or not st.session_state.has_enough_money_to_buy_vowels
+            or st.session_state.puzzle_solved
+        )
+    else:
+        # If the selected letters are not in the session state, assume this is the "first game" or a "new game"
+        if "selected_letters" not in st.session_state:
+            st.session_state.selected_letters = []
+            st.session_state.bonus_selected_letters = []
+
+            set_check_letter(False)
+            zero_contestant_score()
+            set_puzzle_solved(None)
+            set_audio_queue(new_puzzle_b64, 1)
+
+            set_disable_consonants(False)
+            set_disable_vowels(True)
+
+            puzzle_message_container.warning("Open the sidebar to see puzzles from a different season and also see your score.")
+
             for letter in "RSTLNE":
                 if letter not in st.session_state.selected_letters:
                     st.session_state.selected_letters.append(letter)
 
-            puzzle_message_container.warning("The letters R, S, T, L, N, and E are already filled in for you.")
+            puzzle_message_container.warning("The letters R, S, T, L, N, and E are already filled in for you.  Choose 3 more consonants and 1 more vowel.")
 
-    if st.session_state.no_more_consonants and not st.session_state.puzzle_solved and st.session_state.no_more_consonants_warning:
-        puzzle_message_container.warning("No more consonants left in the puzzle.")
-        st.session_state.no_more_consonants_warning = False
-        set_audio_queue(no_more_consonants_b64, 1)
+        if "check_letter" not in st.session_state:
+            set_check_letter(False)
 
-    if st.session_state.no_more_vowels and not st.session_state.puzzle_solved and st.session_state.no_more_vowels_warning:
-        puzzle_message_container.warning("No more vowels left in the puzzle.")
-        st.session_state.no_more_vowels_warning = False
-        set_audio_queue(no_more_vowels_b64, 1)
+        if st.session_state.check_letter:
+            if "bonus_consonant_count" not in st.session_state:
+                st.session_state.bonus_consonant_count = 0
 
-    # Display the spin wheel button
-    if st.button(label="Spin Wheel", key="spin_wheel", disabled=st.session_state.puzzle_solved):
-        set_must_spin_wheel(False)
+            if "bonus_vowel_count" not in st.session_state:
+                st.session_state.bonus_vowel_count = 0
 
-        wheel_prize = get_random_wheel_prize(wheel_prizes)
+            if st.session_state.bonus_consonant_count < 2:
+                st.session_state.bonus_consonant_count += 1
 
-        st.session_state.prize_amount = wheel_prize[1]["prize_amount"]
+                if st.session_state.bonus_consonant_count > 0:
+                    puzzle_message_container.warning("Choose another consonant.")
 
-        if wheel_prize[1]["prize_name"] == "Bankrupt":
-            zero_contestant_score()
-            set_must_spin_wheel(True)
-            set_can_buy_vowel(False)
-            set_audio_queue(bankrupt_b64, 1)
-            puzzle_message_container.error("Sorry, you spun Bankrupt.  You lose all your money.")
-        elif wheel_prize[1]["prize_name"] == "Lose a Turn":
-            set_must_spin_wheel(True)
-            set_can_buy_vowel(False)
-            puzzle_message_container.error("Sorry, you spun Lose a Turn.  You lose your turn.")
-        else:
-            set_must_spin_wheel(False)
-            set_can_buy_vowel(False)
-            puzzle_message_container.success("You spun " + wheel_prize[1]["prize_name"])
+                set_check_letter(False)
+                set_disable_consonants(False)
+                set_disable_vowels(True)
+            elif st.session_state.bonus_vowel_count < 1:
+                puzzle_message_container.warning("Choose a vowel.")
 
-    # Display the contestant score
-    st.sidebar.write("Contestant Score: $" + str(st.session_state.contestant_score))
+                st.session_state.bonus_vowel_count += 1
 
-    play_audio_checkbox = st.sidebar.checkbox("Play Audio", value=True)
+                set_check_letter(False)
+                set_disable_consonants(True)
+                set_disable_vowels(False)
+            else:
+                for letter in st.session_state.bonus_selected_letters:
+                    st.session_state.selected_letters.append(letter)
 
-    # Display the new puzzle button
-    if st.sidebar.button(label="New Puzzle", key="new_puzzle"):
-        reset_game()
-        st.rerun()
+                set_check_letter(True)
+                set_disable_consonants(True)
+                set_disable_vowels(True)
+
+                solve_puzzle = st.chat_input("I'd like to solve the puzzle...", key="solve_puzzle")
+
+                if solve_puzzle:
+                    if solve_puzzle.lower() == puzzle.lower():
+                        puzzle_message_container.success("Congratulations!  You solved the puzzle!")
+                        set_audio_queue(solved_puzzle_b64, 1)
+                        set_puzzle_solved(True)
+                        st.balloons()
+                    else:
+                        puzzle_message_container.error("Sorry, that is not the correct answer.")
+                        set_audio_queue(buzzer_b64, 1)
+                        set_puzzle_solved(False)
+
+                    # Add all the remaining letters to the selected letters
+                    for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+                        if letter not in st.session_state.selected_letters:
+                            st.session_state.selected_letters.append(letter)
+
+                if st.session_state.puzzle_solved is None:
+                    puzzle_message_container.warning("You get only one chance to solve the puzzle!  Good luck.")
+
+        # Display the contestant score
+        st.sidebar.write("Contestant Score: $" + str(st.session_state.contestant_score))
+
+        play_audio_checkbox = st.sidebar.checkbox("Play Audio", value=True)
+
+        # Display the new puzzle button
+        if st.sidebar.button(label="New Puzzle", key="new_puzzle"):
+            reset_game()
+            st.rerun()
+
+    # endif
+
+    st.write("Letter board")
 
     st.write(
         """<style>
@@ -433,105 +559,189 @@ if __name__ == "__main__":
         unsafe_allow_html=True,
     )
 
-    st.write("Letter board")
-
     col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10 = st.columns(10)
 
-    # Disable consonants if:
-    # 1. The contestant must spin the wheel
-    # 2. The puzzle does not contain any more consonants
-    # 3. The puzzle has been solved
-    disable_consonants = st.session_state.must_spin_wheel or st.session_state.no_more_consonants or st.session_state.puzzle_solved
+    if col_1.button(
+        label="A",
+        key="A",
+        disabled="A" in st.session_state.selected_letters or "A" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
+    ):
+        check_letter("A", round)
 
-    # Disable vowels if:
-    # 1. The contestant cannot buy a vowel
-    # 2. The contestant does not have enough money to buy a vowel
-    # 3. The puzzle does not contain any more vowels
-    # 4. The puzzle has been solved
-    disable_vowels = (
-        not st.session_state.can_buy_vowel
-        or st.session_state.no_more_vowels
-        or not st.session_state.has_enough_money_to_buy_vowels
-        or st.session_state.puzzle_solved
-    )
+    if col_2.button(
+        label="B",
+        key="B",
+        disabled="B" in st.session_state.selected_letters or "B" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("B", round)
 
-    if col_1.button(label="A", key="A", disabled="A" in st.session_state.selected_letters or disable_vowels):
-        check_letter("A")
+    if col_3.button(
+        label="C",
+        key="C",
+        disabled="C" in st.session_state.selected_letters or "C" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("C", round)
 
-    if col_2.button(label="B", key="B", disabled="B" in st.session_state.selected_letters or disable_consonants):
-        check_letter("B")
+    if col_4.button(
+        label="D",
+        key="D",
+        disabled="D" in st.session_state.selected_letters or "D" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("D", round)
 
-    if col_3.button(label="C", key="C", disabled="C" in st.session_state.selected_letters or disable_consonants):
-        check_letter("C")
+    if col_5.button(
+        label="E",
+        key="E",
+        disabled="E" in st.session_state.selected_letters or "E" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
+    ):
+        check_letter("E", round)
 
-    if col_4.button(label="D", key="D", disabled="D" in st.session_state.selected_letters or disable_consonants):
-        check_letter("D")
+    if col_6.button(
+        label="F",
+        key="F",
+        disabled="F" in st.session_state.selected_letters or "F" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("F", round)
 
-    if col_5.button(label="E", key="E", disabled="E" in st.session_state.selected_letters or disable_vowels):
-        check_letter("E")
+    if col_7.button(
+        label="G",
+        key="G",
+        disabled="G" in st.session_state.selected_letters or "G" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("G", round)
 
-    if col_6.button(label="F", key="F", disabled="F" in st.session_state.selected_letters or disable_consonants):
-        check_letter("F")
+    if col_8.button(
+        label="H",
+        key="H",
+        disabled="H" in st.session_state.selected_letters or "H" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("H", round)
 
-    if col_7.button(label="G", key="G", disabled="G" in st.session_state.selected_letters or disable_consonants):
-        check_letter("G")
+    if col_9.button(
+        label="I",
+        key="I",
+        disabled="I" in st.session_state.selected_letters or "I" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
+    ):
+        check_letter("I", round)
 
-    if col_8.button(label="H", key="H", disabled="H" in st.session_state.selected_letters or disable_consonants):
-        check_letter("H")
+    if col_10.button(
+        label="J",
+        key="J",
+        disabled="J" in st.session_state.selected_letters or "J" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("J", round)
 
-    if col_9.button(label="I", key="I", disabled="I" in st.session_state.selected_letters or disable_vowels):
-        check_letter("I")
+    if col_1.button(
+        label="K",
+        key="K",
+        disabled="K" in st.session_state.selected_letters or "K" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("K", round)
 
-    if col_10.button(label="J", key="J", disabled="J" in st.session_state.selected_letters or disable_consonants):
-        check_letter("J")
+    if col_2.button(
+        label="L",
+        key="L",
+        disabled="L" in st.session_state.selected_letters or "L" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("L", round)
 
-    if col_1.button(label="K", key="K", disabled="K" in st.session_state.selected_letters or disable_consonants):
-        check_letter("K")
+    if col_3.button(
+        label="M",
+        key="M",
+        disabled="M" in st.session_state.selected_letters or "M" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("M", round)
 
-    if col_2.button(label="L", key="L", disabled="L" in st.session_state.selected_letters or disable_consonants):
-        check_letter("L")
+    if col_4.button(
+        label="N",
+        key="N",
+        disabled="N" in st.session_state.selected_letters or "N" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("N", round)
 
-    if col_3.button(label="M", key="M", disabled="M" in st.session_state.selected_letters or disable_consonants):
-        check_letter("M")
+    if col_5.button(
+        label="O",
+        key="O",
+        disabled="O" in st.session_state.selected_letters or "O" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
+    ):
+        check_letter("O", round)
 
-    if col_4.button(label="N", key="N", disabled="N" in st.session_state.selected_letters or disable_consonants):
-        check_letter("N")
+    if col_6.button(
+        label="P",
+        key="P",
+        disabled="P" in st.session_state.selected_letters or "P" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("P", round)
 
-    if col_5.button(label="O", key="O", disabled="O" in st.session_state.selected_letters or disable_vowels):
-        check_letter("O")
+    if col_7.button(
+        label="Q",
+        key="Q",
+        disabled="Q" in st.session_state.selected_letters or "Q" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("Q", round)
 
-    if col_6.button(label="P", key="P", disabled="P" in st.session_state.selected_letters or disable_consonants):
-        check_letter("P")
+    if col_8.button(
+        label="R",
+        key="R",
+        disabled="R" in st.session_state.selected_letters or "R" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("R", round)
 
-    if col_7.button(label="Q", key="Q", disabled="Q" in st.session_state.selected_letters or disable_consonants):
-        check_letter("Q")
+    if col_9.button(
+        label="S",
+        key="S",
+        disabled="S" in st.session_state.selected_letters or "S" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("S", round)
 
-    if col_8.button(label="R", key="R", disabled="R" in st.session_state.selected_letters or disable_consonants):
-        check_letter("R")
+    if col_10.button(
+        label="T",
+        key="T",
+        disabled="T" in st.session_state.selected_letters or "T" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("T", round)
 
-    if col_9.button(label="S", key="S", disabled="S" in st.session_state.selected_letters or disable_consonants):
-        check_letter("S")
+    if col_1.button(
+        label="U",
+        key="U",
+        disabled="U" in st.session_state.selected_letters or "U" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
+    ):
+        check_letter("U", round)
 
-    if col_10.button(label="T", key="T", disabled="T" in st.session_state.selected_letters or disable_consonants):
-        check_letter("T")
+    if col_2.button(
+        label="V",
+        key="V",
+        disabled="V" in st.session_state.selected_letters or "V" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("V", round)
 
-    if col_1.button(label="U", key="U", disabled="U" in st.session_state.selected_letters or disable_vowels):
-        check_letter("U")
+    if col_3.button(
+        label="W",
+        key="W",
+        disabled="W" in st.session_state.selected_letters or "W" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("W", round)
 
-    if col_2.button(label="V", key="V", disabled="V" in st.session_state.selected_letters or disable_consonants):
-        check_letter("V")
+    if col_4.button(
+        label="X",
+        key="X",
+        disabled="X" in st.session_state.selected_letters or "X" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("X", round)
 
-    if col_3.button(label="W", key="W", disabled="W" in st.session_state.selected_letters or disable_consonants):
-        check_letter("W")
+    if col_5.button(
+        label="Y",
+        key="Y",
+        disabled="Y" in st.session_state.selected_letters or "Y" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("Y", round)
 
-    if col_4.button(label="X", key="X", disabled="X" in st.session_state.selected_letters or disable_consonants):
-        check_letter("X")
-
-    if col_5.button(label="Y", key="Y", disabled="Y" in st.session_state.selected_letters or disable_consonants):
-        check_letter("Y")
-
-    if col_6.button(label="Z", key="Z", disabled="Z" in st.session_state.selected_letters or disable_consonants):
-        check_letter("Z")
+    if col_6.button(
+        label="Z",
+        key="Z",
+        disabled="Z" in st.session_state.selected_letters or "Z" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
+    ):
+        check_letter("Z", round)
 
     # Generate the puzzle board lines
     puzzle_lines = generate_puzzle_board(puzzle)
@@ -551,7 +761,7 @@ if __name__ == "__main__":
         + """&"""
     )
 
-    if st.session_state.puzzle_solved:
+    if (st.session_state.puzzle_solved and round != 'Bonus Round') or (st.session_state.puzzle_solved is not None and round == 'Bonus Round'):
         puzzle_message_container.success("Open the sidebar and click 'New Puzzle' to play again!")
 
     st.sidebar.caption(
