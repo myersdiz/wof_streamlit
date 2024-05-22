@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import base64, json, random, time
 
@@ -143,7 +144,7 @@ def clear_audio_queue() -> None:
 
 
 def play_audio(audio_file: str) -> None:
-    st.components.v1.html(
+    components.html(
         f"""
         <audio class="{str(random.random())}" autoplay="true">
         <source src="data:audio/mpeg;base64,{audio_file}" type="audio/mpeg">
