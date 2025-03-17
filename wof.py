@@ -3,6 +3,27 @@ import streamlit.components.v1 as components
 import pandas as pd
 import base64, json, random, time
 
+alphabet = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+excluded_seasons = ["Season 7", "Season 12", "Season 41"]
+
+audio_files = [
+    "assets/audio/bankrupt.mp3",
+    "assets/audio/buzzer.mp3",
+    "assets/audio/ding.mp3",
+    "assets/audio/new_puzzle.mp3",
+    "assets/audio/no_more_consonants.mp3",
+    "assets/audio/no_more_vowels.mp3",
+    "assets/audio/solved_puzzle.mp3",
+]
+
+bankrupt_b64 = ""
+buzzer_b64 = ""
+ding_b64 = ""
+new_puzzle_b64 = ""
+no_more_consonants_b64 = ""
+no_more_vowels_b64 = ""
+solved_puzzle_b64 = ""
 
 def set_check_letter(check_letter: bool) -> None:
     if "check_letter" not in st.session_state:
@@ -96,36 +117,13 @@ def reset_game() -> None:
 
 
 @st.cache_data
-def load_audio_files() -> tuple[str, str, str, str, str]:
-    with open("assets/audio/bankrupt.mp3", "rb") as f:
-        data = f.read()
-        bankrupt_b64 = base64.b64encode(data).decode()
+def load_audio_files(audio_file) -> str:
+    audio_data = ""
 
-    with open("assets/audio/buzzer.mp3", "rb") as f:
-        data = f.read()
-        buzzer_b64 = base64.b64encode(data).decode()
+    with open(audio_file, "rb") as f:
+        audio_data = f.read()
 
-    with open("assets/audio/ding.mp3", "rb") as f:
-        data = f.read()
-        ding_b64 = base64.b64encode(data).decode()
-
-    with open("assets/audio/new_puzzle.mp3", "rb") as f:
-        data = f.read()
-        new_puzzle_b64 = base64.b64encode(data).decode()
-
-    with open("assets/audio/no_more_consonants.mp3", "rb") as f:
-        data = f.read()
-        no_more_consonants_b64 = base64.b64encode(data).decode()
-
-    with open("assets/audio/no_more_vowels.mp3", "rb") as f:
-        data = f.read()
-        no_more_vowels_b64 = base64.b64encode(data).decode()
-
-    with open("assets/audio/solved_puzzle.mp3", "rb") as f:
-        data = f.read()
-        solved_puzzle_b64 = base64.b64encode(data).decode()
-
-    return bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, no_more_consonants_b64, no_more_vowels_b64, solved_puzzle_b64
+    return audio_data
 
 
 def set_audio_queue(audio_file: str, audio_play_count: int) -> None:
@@ -141,19 +139,6 @@ def set_audio_queue(audio_file: str, audio_play_count: int) -> None:
 def clear_audio_queue() -> None:
     if "audio_queue" in st.session_state:
         del st.session_state.audio_queue
-
-
-def play_audio(audio_file: str) -> None:
-    components.html(
-        f"""
-        <audio class="{str(random.random())}" autoplay="true">
-        <source src="data:audio/mpeg;base64,{audio_file}" type="audio/mpeg">
-        </audio>
-        """,
-        width=0,
-        height=0,
-        scrolling=False,
-    )
 
 
 @st.cache_data
@@ -294,16 +279,17 @@ def check_letter(letter: str, round: str) -> None:
 
 if __name__ == "__main__":
     # Load the audio files
-    bankrupt_b64, buzzer_b64, ding_b64, new_puzzle_b64, no_more_consonants_b64, no_more_vowels_b64, solved_puzzle_b64 = load_audio_files()
+    for audio_file in audio_files:
+        globals()[audio_file.split("/")[2].split(".")[0] + "_b64"] = load_audio_files(audio_file)
 
     # Display the title in the sidebar
     st.sidebar.title("Wheel's Fortune")
 
     # Create a list of season names starting with Season 1 ending with Season 41
     puzzle_files = ["Season " + str(i) for i in range(1, 42)]
-    puzzle_files.remove("Season 7")  # Season 7 is missing
-    puzzle_files.remove("Season 12")  # Season 12 is missing
-    puzzle_files.remove("Season 41")  # Season 41 is corrupt
+    for season in excluded_seasons:
+        if season in puzzle_files:
+            puzzle_files.remove(season)
 
     # Display the season selection dropdown
     puzzle_file = st.sidebar.selectbox(label="Select a season", options=puzzle_files, on_change=reset_game)
@@ -328,7 +314,7 @@ if __name__ == "__main__":
         if solve_puzzle:
             if solve_puzzle.lower() == puzzle.lower():
                 # Add all the remaining letters to the selected letters
-                for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+                for letter in alphabet:
                     if letter not in st.session_state.selected_letters:
                         st.session_state.selected_letters.append(letter)
 
@@ -528,7 +514,7 @@ if __name__ == "__main__":
                         set_puzzle_solved(False)
 
                     # Add all the remaining letters to the selected letters
-                    for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+                    for letter in alphabet:
                         if letter not in st.session_state.selected_letters:
                             st.session_state.selected_letters.append(letter)
 
@@ -560,189 +546,18 @@ if __name__ == "__main__":
         unsafe_allow_html=True,
     )
 
+    # Create columns for the letter board
     col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10 = st.columns(10)
 
-    if col_1.button(
-        label="A",
-        key="A",
-        disabled="A" in st.session_state.selected_letters or "A" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
-    ):
-        check_letter("A", round)
-
-    if col_2.button(
-        label="B",
-        key="B",
-        disabled="B" in st.session_state.selected_letters or "B" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("B", round)
-
-    if col_3.button(
-        label="C",
-        key="C",
-        disabled="C" in st.session_state.selected_letters or "C" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("C", round)
-
-    if col_4.button(
-        label="D",
-        key="D",
-        disabled="D" in st.session_state.selected_letters or "D" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("D", round)
-
-    if col_5.button(
-        label="E",
-        key="E",
-        disabled="E" in st.session_state.selected_letters or "E" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
-    ):
-        check_letter("E", round)
-
-    if col_6.button(
-        label="F",
-        key="F",
-        disabled="F" in st.session_state.selected_letters or "F" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("F", round)
-
-    if col_7.button(
-        label="G",
-        key="G",
-        disabled="G" in st.session_state.selected_letters or "G" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("G", round)
-
-    if col_8.button(
-        label="H",
-        key="H",
-        disabled="H" in st.session_state.selected_letters or "H" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("H", round)
-
-    if col_9.button(
-        label="I",
-        key="I",
-        disabled="I" in st.session_state.selected_letters or "I" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
-    ):
-        check_letter("I", round)
-
-    if col_10.button(
-        label="J",
-        key="J",
-        disabled="J" in st.session_state.selected_letters or "J" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("J", round)
-
-    if col_1.button(
-        label="K",
-        key="K",
-        disabled="K" in st.session_state.selected_letters or "K" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("K", round)
-
-    if col_2.button(
-        label="L",
-        key="L",
-        disabled="L" in st.session_state.selected_letters or "L" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("L", round)
-
-    if col_3.button(
-        label="M",
-        key="M",
-        disabled="M" in st.session_state.selected_letters or "M" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("M", round)
-
-    if col_4.button(
-        label="N",
-        key="N",
-        disabled="N" in st.session_state.selected_letters or "N" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("N", round)
-
-    if col_5.button(
-        label="O",
-        key="O",
-        disabled="O" in st.session_state.selected_letters or "O" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
-    ):
-        check_letter("O", round)
-
-    if col_6.button(
-        label="P",
-        key="P",
-        disabled="P" in st.session_state.selected_letters or "P" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("P", round)
-
-    if col_7.button(
-        label="Q",
-        key="Q",
-        disabled="Q" in st.session_state.selected_letters or "Q" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("Q", round)
-
-    if col_8.button(
-        label="R",
-        key="R",
-        disabled="R" in st.session_state.selected_letters or "R" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("R", round)
-
-    if col_9.button(
-        label="S",
-        key="S",
-        disabled="S" in st.session_state.selected_letters or "S" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("S", round)
-
-    if col_10.button(
-        label="T",
-        key="T",
-        disabled="T" in st.session_state.selected_letters or "T" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("T", round)
-
-    if col_1.button(
-        label="U",
-        key="U",
-        disabled="U" in st.session_state.selected_letters or "U" in st.session_state.bonus_selected_letters or st.session_state.disable_vowels,
-    ):
-        check_letter("U", round)
-
-    if col_2.button(
-        label="V",
-        key="V",
-        disabled="V" in st.session_state.selected_letters or "V" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("V", round)
-
-    if col_3.button(
-        label="W",
-        key="W",
-        disabled="W" in st.session_state.selected_letters or "W" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("W", round)
-
-    if col_4.button(
-        label="X",
-        key="X",
-        disabled="X" in st.session_state.selected_letters or "X" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("X", round)
-
-    if col_5.button(
-        label="Y",
-        key="Y",
-        disabled="Y" in st.session_state.selected_letters or "Y" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("Y", round)
-
-    if col_6.button(
-        label="Z",
-        key="Z",
-        disabled="Z" in st.session_state.selected_letters or "Z" in st.session_state.bonus_selected_letters or st.session_state.disable_consonants,
-    ):
-        check_letter("Z", round)
+    # Create buttons for each letter in the alphabet
+    for i, letter in enumerate(alphabet):
+        col = [col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10][i % 10]
+        if col.button(
+            label=letter,
+            key=letter,
+            disabled=letter in st.session_state.selected_letters or letter in st.session_state.bonus_selected_letters or (letter in "AEIOU" and st.session_state.disable_vowels) or (letter not in "AEIOU" and st.session_state.disable_consonants),
+        ):
+            check_letter(letter, round)
 
     # Generate the puzzle board lines
     puzzle_lines = generate_puzzle_board(puzzle)
@@ -751,14 +566,10 @@ if __name__ == "__main__":
     image_container.image(
         """https://www.thewordfinder.com/wof-puzzle-generator/puzzle.php?bg=2&ln1="""
         + puzzle_lines["ln1"][0]
-        + """&ln2="""
-        + puzzle_lines["ln2"][0]
-        + """&ln3="""
-        + puzzle_lines["ln3"][0]
-        + """&ln4="""
-        + puzzle_lines["ln4"][0]
-        + """&cat="""
-        + category.replace("&", "%26")
+        + """&ln2=""" + puzzle_lines["ln2"][0]
+        + """&ln3=""" + puzzle_lines["ln3"][0]
+        + """&ln4=""" + puzzle_lines["ln4"][0]
+        + """&cat=""" + category.replace("&", "%26")
         + """&"""
     )
 
@@ -774,10 +585,9 @@ if __name__ == "__main__":
 
     if "audio_queue" in st.session_state:
         if play_audio_checkbox:
-            for i in range(st.session_state.audio_queue[1]):
-                play_audio(st.session_state.audio_queue[0])
-
-                if st.session_state.audio_queue[1] > 1:
-                    time.sleep(1.5)
-
+            st.audio(
+                data=st.session_state.audio_queue[0] * st.session_state.audio_queue[1],
+                format="audio/mp3",
+                autoplay=True
+            )
         clear_audio_queue()
