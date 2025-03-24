@@ -7,6 +7,14 @@ alphabet = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 excluded_seasons = ["Season 7", "Season 12", "Season 41"]
 
+bankrupt_b64 = ""
+buzzer_b64 = ""
+ding_b64 = ""
+new_puzzle_b64 = ""
+no_more_consonants_b64 = ""
+no_more_vowels_b64 = ""
+solved_puzzle_b64 = ""
+
 audio_files = [
     "assets/audio/bankrupt.mp3",
     "assets/audio/buzzer.mp3",
@@ -16,14 +24,6 @@ audio_files = [
     "assets/audio/no_more_vowels.mp3",
     "assets/audio/solved_puzzle.mp3",
 ]
-
-bankrupt_b64 = ""
-buzzer_b64 = ""
-ding_b64 = ""
-new_puzzle_b64 = ""
-no_more_consonants_b64 = ""
-no_more_vowels_b64 = ""
-solved_puzzle_b64 = ""
 
 def set_check_letter(check_letter: bool) -> None:
     if "check_letter" not in st.session_state:
@@ -555,7 +555,10 @@ if __name__ == "__main__":
         if col.button(
             label=letter,
             key=letter,
-            disabled=letter in st.session_state.selected_letters or letter in st.session_state.bonus_selected_letters or (letter in "AEIOU" and st.session_state.disable_vowels) or (letter not in "AEIOU" and st.session_state.disable_consonants),
+            disabled=letter in st.session_state.selected_letters
+                  or letter in st.session_state.bonus_selected_letters
+                  or (letter in "AEIOU" and st.session_state.disable_vowels)
+                  or (letter not in "AEIOU" and st.session_state.disable_consonants)
         ):
             check_letter(letter, round)
 
